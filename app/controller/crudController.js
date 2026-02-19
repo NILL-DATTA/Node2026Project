@@ -2,34 +2,9 @@ const { postvalidateSchema } = require("../validators/postvalidator");
 const CrudMod = require("../model/AdminModel");
 const cartModel = require("../../app/model/cartModel");
 class CrudController {
-  
 
- 
 
-  async listDelete(req, res) {
-    try {
-      const listData = req.body.id;
-      const listDelete = await CrudMod.findOne({ _id: listData });
-      if (!listDelete) {
-        return res.status(201).json({
-          status: false,
-          message: "Data not found",
-        });
-      }
 
-      const data = await CrudMod.findByIdAndDelete(listData);
-      return res.status(201).json({
-        status: true,
-        message: "Delete successfully",
-        data: data,
-      });
-    } catch (err) {
-      return res.status(500).json({
-        status: false,
-        message: err.message,
-      });
-    }
-  }
 
   async listUpdate(req, res) {
     try {

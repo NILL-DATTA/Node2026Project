@@ -114,6 +114,34 @@ class AdminController {
       });
     }
   }
+
+  async doctorDelete(req, res) {
+    try {
+      const listData = req.body.id;
+
+      const listDelete = await DoctorSchema.findOne({ _id: listData });
+
+      console.log(listData,"listDelete")
+      if (!listDelete) {
+        return res.status(401).json({
+          status: false,
+          message: "Data not found",
+        });
+      }
+
+      const data = await DoctorSchema.findByIdAndDelete(listData);
+      return res.status(201).json({
+        status: true,
+        message: "Doctor data delete successfully",
+        data: data,
+      });
+    } catch (err) {
+      return res.status(500).json({
+        status: false,
+        message: err.message,
+      });
+    }
+  }
 }
 
 module.exports = new AdminController();
