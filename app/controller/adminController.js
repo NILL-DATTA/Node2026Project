@@ -99,6 +99,21 @@ class AdminController {
       });
     }
   }
+
+  async doctorListData(req, res) {
+    try {
+      let list = await DoctorSchema.find().sort({ createdAt: -1 });
+      res.status(201).json({
+        message: "Doctor list fetch successfull",
+        data: list,
+      });
+    } catch (err) {
+      res.status(500).json({
+        status: false,
+        message: err.message,
+      });
+    }
+  }
 }
 
 module.exports = new AdminController();

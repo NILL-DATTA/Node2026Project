@@ -16,8 +16,6 @@ const router = express.Router();
 // router.get("/about_temp", HomeController.about_temp);
 // router.get("/dashboard", HomeController.dashboard);
 
-router.post("/product/add", CrudController.dataAdd);
-router.get("/product/list", CrudController.listData);
 router.delete("/product/delete", CrudController.listDelete);
 router.post("/product/update", CrudController.listUpdate);
 router.get("/product/details/:id", CrudController.listDetails);

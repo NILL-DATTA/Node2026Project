@@ -2,59 +2,9 @@ const { postvalidateSchema } = require("../validators/postvalidator");
 const CrudMod = require("../model/AdminModel");
 const cartModel = require("../../app/model/cartModel");
 class CrudController {
-  async dataAdd(req, res) {
-    try {
-      const { error, value } = postvalidateSchema.validate(req.body);
+  
 
-      if (error) {
-        return res.status(400).json({
-          status: false,
-          message: error.details[0].message,
-        });
-      }
-
-      let { name, category, price } = value;
-      //   let userId = req?.user?.id;
-      let exist = await CrudMod.findOne({ name });
-      if (exist) {
-        return res.status(400).json({
-          message: "Product with same name already exist",
-        });
-      }
-      let data = new CrudMod({
-        name,
-        category,
-        price,
-        // userId,
-      });
-
-      let savePost = await data.save();
-      return res.status(201).json({
-        message: "Product create successfull",
-        data: savePost,
-      });
-    } catch (err) {
-      res.status(500).json({
-        status: false,
-        message: err.message,
-      });
-    }
-  }
-
-  async listData(req, res) {
-    try {
-      let list = await CrudMod.find().sort({ createdAt: -1 });
-      res.status(201).json({
-        message: "Data list fetch successfull",
-        data: list,
-      });
-    } catch (err) {
-      res.status(500).json({
-        status: false,
-        message: err.message,
-      });
-    }
-  }
+ 
 
   async listDelete(req, res) {
     try {
