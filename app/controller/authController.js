@@ -1,11 +1,13 @@
 // const jwt = require("jsonwebtoken");
+const { use } = require("react");
 const sendEmailverificationOtp = require("../helper/sendEmailverification");
 const userSchema = require("../model/authModel");
 const Otp = require("../model/otpModel");
 const { otpValidate } = require("../validators/authvalidator");
 const { regsiterValidate } = require("../validators/authvalidator");
+const { loginvalidate } = require("../validators/authvalidator");
 const bcrypt = require("bcrypt");
-
+const jwt = require("jsonwebtoken");
 class AuthController {
   async signUp(req, res) {
     try {
@@ -123,6 +125,61 @@ class AuthController {
       return res.status(500).json({
         status: false,
         message: "Something went wrong. Please try again.",
+      });
+    }
+  }
+
+  async signIn(req, res) {
+    try {
+      const { error, value } = loginvalidate.validate(req.body);
+      if (error) {
+        return res.status(400).json({
+          status: false,
+          message: error.details.map((d) => d.message).join(", "),
+        });
+      }
+
+      const { email, password } = value;
+
+      let user = await userSchema.findOne({ email });
+
+      if (!user) {
+        return res.status(401).json({
+          status: false,
+          message: "Invalid email and password",
+        });
+      }
+
+      let isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(401).json({
+          status: false,
+          message: "Invalid email and password",
+        });
+      }
+
+      let token;
+      if (user && isMatch && user.role === "user") {
+        token = jwt.sign({ id: user._id, role: user.role }, "secret_key", {
+          expiresIn: "1h",
+        });
+      }
+
+      res.status(200).json({
+        status: true,
+        message: "Login successfull",
+        data: {
+          email: user.email,
+          password: user.password,
+          role: user.role,
+        },
+        token,
+      });
+    } catch (err) {
+      console.log(err);
+      return res.status(500).json({
+        status: false,
+        message: "Something is Error",
       });
     }
   }

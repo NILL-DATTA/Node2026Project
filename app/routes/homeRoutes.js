@@ -1,20 +1,20 @@
 const express = require("express");
 
-const HomeController = require("../controller/HomeController");
+// const HomeController = require("../controller/HomeController");
 const CrudController = require("../controller/crudController");
 const AuthController = require("../controller/authController");
 const router = express.Router();
 
-router.get("/", HomeController.home);
+// router.get("/", HomeController.home);
 
-router.get("/home", HomeController.dataApi);
+// router.get("/home", HomeController.dataApi);
 
-router.get("/dynamic", HomeController.dynamic);
+// router.get("/dynamic", HomeController.dynamic);
 
-router.get("/about", HomeController.about);
+// router.get("/about", HomeController.about);
 
-router.get("/about_temp", HomeController.about_temp);
-router.get("/dashboard", HomeController.dashboard);
+// router.get("/about_temp", HomeController.about_temp);
+// router.get("/dashboard", HomeController.dashboard);
 
 router.post("/product/add", CrudController.dataAdd);
 router.get("/product/list", CrudController.listData);
@@ -24,5 +24,6 @@ router.get("/product/details/:id", CrudController.listDetails);
 router.post("/product/cart", CrudController.cart);
 router.get("/product/cartlist", CrudController.cartList);
 router.post("/auth/register", AuthController.signUp);
+router.post("/auth/login", AuthController.signIn);
 router.post("/auth/verify_otp", AuthController.otp);
 module.exports = router;

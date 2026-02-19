@@ -13,7 +13,7 @@ const regsiterValidate = joi.object({
     "any.required": "Last name is required",
   }),
 
-  email: joi.string().min(7).max(20).required().messages({
+  email: joi.string().min(7).max(50).required().messages({
     "string.empty": "email name cannot be empty",
     "string.min": "email should have at least {#limit} characters",
     "any.required": "Email is required",
@@ -63,7 +63,22 @@ const otpValidate = joi.object({
     }),
 });
 
+const loginvalidate = joi.object({
+  email: joi.string().min(7).max(50).required().messages({
+    "string.empty": "email name cannot be empty",
+    "string.min": "email should have at least {#limit} characters",
+    "any.required": "Email is required",
+  }),
+
+  password: joi.string().min(6).max(50).required().messages({
+    "string.empty": "password  cannot be empty",
+    "string.min": "password should have at least {#limit} characters",
+    "any.required": "password is required",
+  }),
+});
+
 module.exports = {
   regsiterValidate,
-  otpValidate
+  otpValidate,
+  loginvalidate,
 };

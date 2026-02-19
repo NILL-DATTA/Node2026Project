@@ -1,5 +1,5 @@
 const { postvalidateSchema } = require("../validators/postvalidator");
-const CrudMod = require("../../app/model/crudModel");
+const CrudMod = require("../model/AdminModel");
 const cartModel = require("../../app/model/cartModel");
 class CrudController {
   async dataAdd(req, res) {

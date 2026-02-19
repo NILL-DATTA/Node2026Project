@@ -79,8 +79,10 @@ const express = require("express");
 const path = require("path");
 const connectedDB = require("./app/config/dbcon");
 const homeRoute = require("./app/routes/homeRoutes");
+const adminRoute = require("./app/routes/adminRoutes");
 const app = express();
 const cors = require("cors");
+// const checkRole = require("./app/middleware/auth");
 
 connectedDB();
 app.use(cors());
@@ -91,11 +93,13 @@ app.use(express.urlencoded({ extended: true }));
 
 const PORT = 3000;
 
-app.use(express.static("public"));
-
-app.set(path.join(__dirname, "public"));
+app.use(express.static(path.join(__dirname, "public")));
 
 app.use(homeRoute);
+app.use(adminRoute);
+
+
+
 app.listen(PORT, () => {
   console.log(`server is running on port ${PORT}`);
 });
