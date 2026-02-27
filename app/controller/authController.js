@@ -1,3 +1,4 @@
+const generateOTP = require("../helper/generateOtp");
 const sendEmailverificationOtp = require("../helper/sendEmailverification");
 const userSchema = require("../model/authModel");
 const Otp = require("../model/otpModel");
@@ -263,6 +264,57 @@ class AuthController {
         status: false,
         message: "Error showing",
         error: err.message,
+      });
+    }
+  }
+
+  async resendOtp(req, res) {
+    try {
+      let { email } = req.body;
+
+      let userCheck = await userSchema.findOne({ email });
+
+      if (!userCheck) {
+        return res.status(400).json({
+          status: false,
+          message: "User not found",
+        });
+      }
+
+      if (userCheck.resendCount >= 3) {
+        return res.status(400).json({
+          status: false,
+          message: "Otp limit crossed",
+        });
+      }
+
+      let now = Date.now();
+
+      if (userCheck.lastSentAt && now - userCheck.lastSentAt < 30000) {
+        return res.status(400).json({
+          status: false,
+          message: "after 30 sec you will able",
+        });
+      }
+
+      const otp = generateOTP();
+      userCheck.otp = otp;
+      userCheck.otpExpires = now + 2 * 60 * 1000;
+      userCheck.resendCount += 1;
+      userCheck.lastSentAt = now;
+      await userCheck.save();
+
+      await sendEmailverificationOtp(userCheck);
+
+      res.status(200).json({
+        status: true,
+        message: "Otp resend succesfully",
+      });
+    } catch (err) {
+      res.status(500).json({
+        status: false,
+        message: "Error showing",
+        error:err.message
       });
     }
   }
