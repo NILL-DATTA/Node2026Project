@@ -4,7 +4,7 @@ const AuthController = require("../controller/authController");
 
 const checkRole = require("../../app/middleware/auth");
 const router = express.Router();
-
+router.post("/admin/refresh-token", AuthController.refreshToken);
 router.post("/admin/auth/login", adminController.signIn);
 router.use(checkRole("admin"));
 
@@ -26,5 +26,4 @@ router.get(
   adminController.departmentwiseDoctor,
 );
 
-router.post("/admin/refresh-token", AuthController.refreshToken);
 module.exports = router;
