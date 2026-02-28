@@ -253,7 +253,7 @@ class AuthController {
         const newAccessToken = jwt.sign(
           { id: account._id, role: account.role },
           "secret_key",
-          { expiresIn: "5m" },
+          { expiresIn: "5d" },
         );
 
         return res.status(200).json({
