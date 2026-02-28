@@ -416,7 +416,7 @@ class AdminController {
 
   async departmentList(req, res) {
     try {
-      let list = await DoctorSchema.find().sort({ createdAt: -1 });
+      let list = await DepartmentSchema.find().sort({ createdAt: -1 });
 
       res.status(200).json({
         status: true,
