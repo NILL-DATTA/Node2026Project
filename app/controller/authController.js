@@ -231,19 +231,15 @@ class AuthController {
       }
 
       let user = await userSchema.findOne({ refreshToken: refreshtoken });
-      
-      let Adminuser = await adminSchema.findOne({ refreshToken: refreshtoken });
+
+      if (!user) {
+        user = await adminSchema.findOne({ refreshToken: refreshtoken });
+      }
+
       if (!user) {
         return res.status(403).json({
           status: false,
-          message: "Invalid user",
-        });
-      }
-
-      if (!Adminuser) {
-        return res.status(403).json({
-          status: false,
-          message: "Invalid Admin",
+          message: "Invalid refresh token",
         });
       }
 
@@ -251,7 +247,7 @@ class AuthController {
         if (err) {
           return res.status(400).json({
             status: false,
-            message: "Error showing",
+            message: "Token expired or invalid",
           });
         }
         const newAccessToken = jwt.sign(
