@@ -220,50 +220,64 @@ class AuthController {
 
   async refreshToken(req, res) {
     try {
-      const refreshtoken = req.cookies.refreshToken;
+      const cookieToken = req.cookies.refreshToken;
 
-      if (!refreshtoken) {
+      if (!cookieToken) {
         return res.status(403).json({
           status: false,
-          message: "No token found",
+          message: "No refresh token found",
         });
       }
 
-      jwt.verify(refreshtoken, "secret_refresh", async (err, decoded) => {
-        if (err) {
-          return res.status(400).json({
-            status: false,
-            message: "Token expired or invalid",
-          });
-        }
+      let account = await userSchema.findOne({ refreshToken: cookieToken });
+      if (!account) {
+        account = await adminSchema.findOne({ refreshToken: cookieToken });
+      }
 
-        let account = await userSchema.findById(decoded.id);
-
-        if (!account) {
-          account = await adminSchema.findById(decoded.id);
-        }
-
-        if (!account) {
-          return res.status(403).json({
-            status: false,
-            message: "Account not found",
-          });
-        }
-
-        const newAccessToken = jwt.sign(
-          { id: account._id, role: account.role },
-          "secret_key",
-          { expiresIn: "5d" },
-        );
-
-        return res.status(200).json({
-          status: true,
-          token: newAccessToken,
-          message: "Access token refreshed successfully",
+      if (!account) {
+        return res.status(403).json({
+          status: false,
+          message: "Invalid refresh token",
         });
+      }
+
+      let decoded;
+      try {
+        decoded = jwt.verify(cookieToken, "secret_refresh");
+      } catch (err) {
+        return res.status(400).json({
+          status: false,
+          message: "Refresh token expired or invalid",
+        });
+      }
+
+      const newAccessToken = jwt.sign(
+        { id: account._id, role: account.role },
+        "secret_key",
+        { expiresIn: "5m" },
+      );
+
+      const newRefreshToken = jwt.sign(
+        { id: account._id, role: account.role },
+        "secret_refresh",
+        { expiresIn: "7d" },
+      );
+
+      account.refreshToken = newRefreshToken;
+      await account.save();
+
+      res.cookie("refreshToken", newRefreshToken, {
+        httpOnly: true,
+        path: "/refresh-token",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+      res.status(200).json({
+        status: true,
+        token: newAccessToken,
+        message: "Access token refreshed successfully",
       });
     } catch (err) {
-      return res.status(500).json({
+      res.status(500).json({
         status: false,
         message: "Server error",
         error: err.message,
