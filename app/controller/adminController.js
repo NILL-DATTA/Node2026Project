@@ -45,26 +45,22 @@ class AdminController {
         });
       }
       if (user && isMatch) {
-      
         token = jwt.sign({ id: user._id, role: user.role }, "secret_key", {
           expiresIn: "5m",
         });
 
-        
         const refreshToken = jwt.sign(
           { id: user._id, role: user.role },
           "secret_refresh",
           { expiresIn: "7d" },
         );
 
-       
         user.refreshToken = refreshToken;
         await user.save();
 
-        
         res.cookie("refreshToken", refreshToken, {
           httpOnly: true,
-          secure: false, 
+          secure: false,
           sameSite: "lax",
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
@@ -414,6 +410,24 @@ class AdminController {
       res.status(500).json({
         status: false,
         message: err.message,
+      });
+    }
+  }
+
+  async departmentList(req, res) {
+    try {
+      let list = await DoctorSchema.find().sort({ createdAt: -1 });
+
+      res.status(200).json({
+        status: true,
+        data:list,
+        message: "Department list fetch successfully",
+      });
+    } catch (err) {
+      res.status(500).json({
+        status: false,
+        message: "Error showing",
+        error: err.message,
       });
     }
   }

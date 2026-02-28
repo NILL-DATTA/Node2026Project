@@ -26,4 +26,10 @@ router.get(
   adminController.departmentwiseDoctor,
 );
 
+router.get(
+  `/admin/departments/list`,
+  adminController.departmentList,
+);
+
+
 module.exports = router;
