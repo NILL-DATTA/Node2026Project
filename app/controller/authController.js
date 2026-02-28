@@ -220,54 +220,52 @@ class AuthController {
 
   async refreshToken(req, res) {
     try {
-      let refreshtoken = req.cookies.refreshToken;
+      const refreshtoken = req.cookies.refreshToken;
 
-      console.log(refreshtoken, "refreshtoken");
       if (!refreshtoken) {
         return res.status(403).json({
           status: false,
-          message: "No token Here",
+          message: "No token found",
         });
       }
 
-      let user = await userSchema.findOne({ refreshToken: refreshtoken });
-
-      if (!user) {
-        user = await adminSchema.findOne({ refreshToken: refreshtoken });
-      }
-
-      if (!user) {
-        return res.status(403).json({
-          status: false,
-          message: "Invalid refresh token",
-        });
-      }
-
-      jwt.verify(refreshtoken, "secret_refresh", (err, decoded) => {
+      jwt.verify(refreshtoken, "secret_refresh", async (err, decoded) => {
         if (err) {
           return res.status(400).json({
             status: false,
             message: "Token expired or invalid",
           });
         }
+
+        let account = await userSchema.findById(decoded.id);
+
+        if (!account) {
+          account = await adminSchema.findById(decoded.id);
+        }
+
+        if (!account) {
+          return res.status(403).json({
+            status: false,
+            message: "Account not found",
+          });
+        }
+
         const newAccessToken = jwt.sign(
-          { id: user._id, role: user.role },
+          { id: account._id, role: account.role },
           "secret_key",
-          {
-            expiresIn: "5m",
-          },
+          { expiresIn: "5m" },
         );
 
-        res.status(200).json({
+        return res.status(200).json({
           status: true,
           token: newAccessToken,
           message: "Access token refreshed successfully",
         });
       });
     } catch (err) {
-      res.status(500).json({
+      return res.status(500).json({
         status: false,
-        message: "Error showing",
+        message: "Server error",
         error: err.message,
       });
     }
