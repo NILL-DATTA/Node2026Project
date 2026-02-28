@@ -26,5 +26,5 @@ router.get(
   adminController.departmentwiseDoctor,
 );
 
-router.post("/refresh-token", AuthController.refreshToken);
+router.post("/admin/refresh-token", AuthController.refreshToken);
 module.exports = router;
