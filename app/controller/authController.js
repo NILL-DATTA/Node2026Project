@@ -218,73 +218,75 @@ class AuthController {
     }
   }
 
-  async refreshToken(req, res) {
-    try {
-      const cookieToken = req.cookies.refreshToken;
+ async refreshToken(req, res) {
+  try {
+    const cookieToken = req.cookies.refreshToken;
 
-      if (!cookieToken) {
-        return res.status(403).json({
-          status: false,
-          message: "No refresh token found",
-        });
-      }
-
-      let account = await userSchema.findOne({ refreshToken: cookieToken });
-      if (!account) {
-        account = await adminSchema.findOne({ refreshToken: cookieToken });
-      }
-
-      if (!account) {
-        return res.status(403).json({
-          status: false,
-          message: "Invalid refresh token",
-        });
-      }
-
-      let decoded;
-      try {
-        decoded = jwt.verify(cookieToken, "secret_refresh");
-      } catch (err) {
-        return res.status(400).json({
-          status: false,
-          message: "Refresh token expired or invalid",
-        });
-      }
-
-      const newAccessToken = jwt.sign(
-        { id: account._id, role: account.role },
-        "secret_key",
-        { expiresIn: "5m" },
-      );
-
-      const newRefreshToken = jwt.sign(
-        { id: account._id, role: account.role },
-        "secret_refresh",
-        { expiresIn: "7d" },
-      );
-
-      account.refreshToken = newRefreshToken;
-      await account.save();
-
-      res.cookie("refreshToken", newRefreshToken, {
-        httpOnly: true,
-        path: "/refresh-token",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
-      res.status(200).json({
-        status: true,
-        token: newAccessToken,
-        message: "Access token refreshed successfully",
-      });
-    } catch (err) {
-      res.status(500).json({
+    if (!cookieToken) {
+      return res.status(403).json({
         status: false,
-        message: "Server error",
-        error: err.message,
+        message: "No refresh token found",
       });
     }
-  }
 
+    let decoded;
+    try {
+      decoded = jwt.verify(cookieToken, "secret_refresh");
+    } catch (err) {
+      return res.status(400).json({
+        status: false,
+        message: "Refresh token expired or invalid",
+      });
+    }
+
+    let account = await userSchema.findById(decoded.id);
+    if (!account) {
+      account = await adminSchema.findById(decoded.id);
+    }
+
+    if (!account) {
+      return res.status(403).json({
+        status: false,
+        message: "Invalid refresh token",
+      });
+    }
+
+
+    const newAccessToken = jwt.sign(
+      { id: account._id, role: account.role },
+      "secret_key",
+      { expiresIn: "5m" }
+    );
+
+    const newRefreshToken = jwt.sign(
+      { id: account._id, role: account.role },
+      "secret_refresh",
+      { expiresIn: "7d" }
+    );
+
+    account.refreshToken = newRefreshToken;
+    await account.save();
+
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      path: "/refresh-token",
+      maxAge: 7 * 24 * 60 * 60 * 1000, 
+    });
+
+
+    res.status(200).json({
+      status: true,
+      token: newAccessToken,
+      message: "Access token refreshed successfully",
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: false,
+      message: "Server error",
+      error: err.message,
+    });
+  }
+}
   async resendOtp(req, res) {
     try {
       let { email } = req.body;

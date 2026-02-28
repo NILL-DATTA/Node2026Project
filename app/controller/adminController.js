@@ -44,6 +44,31 @@ class AdminController {
           expiresIn: "5m",
         });
       }
+      if (user && isMatch) {
+      
+        token = jwt.sign({ id: user._id, role: user.role }, "secret_key", {
+          expiresIn: "5m",
+        });
+
+        
+        const refreshToken = jwt.sign(
+          { id: user._id, role: user.role },
+          "secret_refresh",
+          { expiresIn: "7d" },
+        );
+
+       
+        user.refreshToken = refreshToken;
+        await user.save();
+
+        
+        res.cookie("refreshToken", refreshToken, {
+          httpOnly: true,
+          secure: false, 
+          sameSite: "lax",
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+      }
 
       res.status(200).json({
         status: true,
