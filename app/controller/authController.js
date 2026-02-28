@@ -5,6 +5,7 @@ const Otp = require("../model/otpModel");
 const { otpValidate } = require("../validators/authvalidator");
 const { regsiterValidate } = require("../validators/authvalidator");
 const { loginvalidate } = require("../validators/authvalidator");
+const adminSchema = require("../model/adminUser");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 class AuthController {
@@ -230,11 +231,19 @@ class AuthController {
       }
 
       let user = await userSchema.findOne({ refreshToken: refreshtoken });
-
+      
+      let Adminuser = await adminSchema.findOne({ refreshToken: refreshtoken });
       if (!user) {
         return res.status(403).json({
           status: false,
           message: "Invalid user",
+        });
+      }
+
+      if (!Adminuser) {
+        return res.status(403).json({
+          status: false,
+          message: "Invalid Admin",
         });
       }
 
@@ -314,7 +323,7 @@ class AuthController {
       res.status(500).json({
         status: false,
         message: "Error showing",
-        error:err.message
+        error: err.message,
       });
     }
   }

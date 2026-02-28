@@ -1,5 +1,7 @@
 const express = require("express");
 const adminController = require("../controller/adminController");
+const AuthController = require("../controller/authController");
+
 const checkRole = require("../../app/middleware/auth");
 const router = express.Router();
 
@@ -23,4 +25,6 @@ router.get(
   `/admin/departments/:departmentId/doctors`,
   adminController.departmentwiseDoctor,
 );
+
+router.post("/refresh-token", AuthController.refreshToken);
 module.exports = router;
