@@ -142,6 +142,7 @@ class AuthController {
 
   async signIn(req, res) {
     try {
+      // Validate login input
       const { error, value } = loginvalidate.validate(req.body);
       if (error) {
         return res.status(400).json({
@@ -152,56 +153,54 @@ class AuthController {
 
       const { email, password } = value;
 
+      // Check if user exists
       let user = await userSchema.findOne({ email });
-
       if (!user) {
         return res.status(401).json({
           status: false,
-          message: "Invalid email and password",
+          message: "Invalid email or password",
         });
       }
 
+      // Check password match
       let isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
         return res.status(401).json({
           status: false,
-          message: "Invalid email and password",
+          message: "Invalid email or password",
         });
       }
 
-      let token;
-      if (user && isMatch && user.role === "user") {
-        token = jwt.sign({ id: user._id, role: user.role }, "secret_key", {
-          expiresIn: "5m",
-        });
-      }
+      // Generate access token
+      let token = jwt.sign(
+        { id: user._id, role: user.role },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: "5m" },
+      );
 
-      let refreshToken;
+      // Generate refresh token
+      let refreshToken = jwt.sign(
+        { id: user._id, role: user.role },
+        process.env.REFRESH_TOKEN_SECRET,
+        { expiresIn: "7d" },
+      );
 
-      if (user.role === "user") {
-        refreshToken = jwt.sign(
-          { id: user._id, role: user.role },
-          "secret_refresh",
-          {
-            expiresIn: "7d",
-          },
-        );
-      }
-
+      // Save the refresh token to the user
       user.refreshToken = refreshToken;
-
       await user.save();
 
+      // Set refresh token in cookies
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: false,
+        secure: process.env.NODE_ENV === "production", // Use true in production
         sameSite: "lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
+      // Respond with success and tokens
       res.status(200).json({
         status: true,
-        message: "Login successfull",
+        message: "Login successful",
         data: {
           email: user.email,
           role: user.role,
@@ -213,80 +212,78 @@ class AuthController {
       console.log(err);
       return res.status(500).json({
         status: false,
-        message: "Something is Error",
+        message: "Something went wrong",
       });
     }
   }
 
- async refreshToken(req, res) {
-  try {
-    const cookieToken = req.cookies.refreshToken;
-
-    if (!cookieToken) {
-      return res.status(403).json({
-        status: false,
-        message: "No refresh token found",
-      });
-    }
-
-    let decoded;
+  async refreshToken(req, res) {
     try {
-      decoded = jwt.verify(cookieToken, "secret_refresh");
+      const cookieToken = req.cookies.refreshToken;
+
+      if (!cookieToken) {
+        return res.status(401).json({
+          status: false,
+          message: "No refresh token found",
+        });
+      }
+
+      let decoded;
+      try {
+        decoded = jwt.verify(cookieToken, "secret_refresh");
+      } catch (err) {
+        return res.status(400).json({
+          status: false,
+          message: "Refresh token expired or invalid",
+        });
+      }
+
+      let account = await userSchema.findById(decoded.id);
+      if (!account) {
+        account = await adminSchema.findById(decoded.id);
+      }
+
+      if (!account) {
+        return res.status(403).json({
+          status: false,
+          message: "Invalid refresh token",
+        });
+      }
+
+      const newAccessToken = jwt.sign(
+        { id: account._id, role: account.role },
+        "secret_key",
+        { expiresIn: "5m" },
+      );
+
+      const newRefreshToken = jwt.sign(
+        { id: account._id, role: account.role },
+        "secret_refresh",
+        { expiresIn: "7d" },
+      );
+
+      account.refreshToken = newRefreshToken;
+      await account.save();
+
+      res.cookie("refreshToken", newRefreshToken, {
+        httpOnly: true,
+        path: "/",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      res.status(200).json({
+        status: true,
+        token: newAccessToken,
+        message: "Access token refreshed successfully",
+      });
     } catch (err) {
-      return res.status(400).json({
+      res.status(500).json({
         status: false,
-        message: "Refresh token expired or invalid",
+        message: "Server error",
+        error: err.message,
       });
     }
-
-    let account = await userSchema.findById(decoded.id);
-    if (!account) {
-      account = await adminSchema.findById(decoded.id);
-    }
-
-    if (!account) {
-      return res.status(403).json({
-        status: false,
-        message: "Invalid refresh token",
-      });
-    }
-
-
-    const newAccessToken = jwt.sign(
-      { id: account._id, role: account.role },
-      "secret_key",
-      { expiresIn: "5m" }
-    );
-
-    const newRefreshToken = jwt.sign(
-      { id: account._id, role: account.role },
-      "secret_refresh",
-      { expiresIn: "7d" }
-    );
-
-    account.refreshToken = newRefreshToken;
-    await account.save();
-
-    res.cookie("refreshToken", newRefreshToken, {
-      httpOnly: true,
-      path: "/refresh-token",
-      maxAge: 7 * 24 * 60 * 60 * 1000, 
-    });
-
-
-    res.status(200).json({
-      status: true,
-      token: newAccessToken,
-      message: "Access token refreshed successfully",
-    });
-  } catch (err) {
-    res.status(500).json({
-      status: false,
-      message: "Server error",
-      error: err.message,
-    });
   }
-}
   async resendOtp(req, res) {
     try {
       let { email } = req.body;

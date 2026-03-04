@@ -3,10 +3,12 @@ const { adminDoctorvalidate } = require("../validators/postvalidator");
 const DoctorSchema = require("../model/AdminModel");
 let transporter = require("../config/emailConfig");
 let AppointmentSchema = require("../model/AppointmentModel");
+const userSchema = require("../model/authModel");
 const DepartmentSchema = require("../model/AdmindepartmentModel");
 const adminSchema = require("../model/adminUser");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { refreshToken } = require("./authController");
 
 class AdminController {
   async signIn(req, res) {
@@ -420,7 +422,7 @@ class AdminController {
 
       res.status(200).json({
         status: true,
-        data:list,
+        data: list,
         message: "Department list fetch successfully",
       });
     } catch (err) {
@@ -430,6 +432,42 @@ class AdminController {
         error: err.message,
       });
     }
+  }
+
+  async adminLogout(req, res) {
+    try {
+      let adminToken = req.cookies.refreshToken;
+      if (!adminToken) {
+        return res.status(400).json({
+          status: false,
+          message: "No refresh token found",
+        });
+      }
+      let account = await userSchema.findOne({ refreshToken: adminToken });
+      if (!account) {
+        account = await adminSchema.findOne({ refreshToken: adminToken });
+      }
+
+      if (account) {
+        adminToken.refreshToken = null;
+        await adminToken.save();
+      }
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        path: "/",
+        secure: true,
+        sameSite: "none",
+      });
+
+      res.status(200).json({
+        status: true,
+        message: "Refresh Token removed successfully",
+      });
+    } catch (err) {}
+    res.status(200).json({
+      status: true,
+      message: "Refresh Token removed successfully",
+    });
   }
 }
 
