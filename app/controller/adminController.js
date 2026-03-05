@@ -294,7 +294,7 @@ class AdminController {
 
       let user = await adminSchema.findById(appointMent.userId);
       await transporter.sendMail({
-        from: `"Hospital Management" <yourgmail@gmail.com>`,
+        from: `"Hospital Management"<yourgmail@gmail.com>`,
         to: user.email,
         subject: "Appointment Booked Successfully",
         html: `

@@ -8,6 +8,9 @@ const { loginvalidate } = require("../validators/authvalidator");
 const adminSchema = require("../model/adminUser");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const resetValidate = require("../validators/resetPasswordvalidator");
+const  transporter  = require("../config/emailConfig");
+
 class AuthController {
   async signUp(req, res) {
     try {
@@ -377,6 +380,62 @@ class AuthController {
       });
     }
   }
+
+async ResetLink(req, res) {
+  try {
+    const { error, value } = resetValidate.validate(req.body);
+
+    if (error) {
+      return res.status(400).json({
+        status: false,
+        message: error.details.map((item) => item.message).join(", "),
+      });
+    }
+
+    const { email } = value;
+
+    const emailCheck = await userSchema.findOne({ email });
+
+    if (!emailCheck) {
+      return res.status(400).json({
+        status: false,
+        message: "Email doesn't exist",
+      });
+    }
+
+    const secret = emailCheck._id + process.env.JWT_SECRET;
+
+    const secretToken = jwt.sign(
+      { id: emailCheck._id },
+      secret,
+      { expiresIn: "5m" }
+    );
+
+    const resetLink = `http://localhost:3000/auth/reset-password/${emailCheck._id}/${secretToken}`;
+
+    await transporter.sendMail({
+      from: process.env.SMTP_EMAIL,
+      to: emailCheck.email,
+      subject: "Password reset link",
+      html: `
+        <p>Hello ${emailCheck.name},</p>
+        <p>Please <a href="${resetLink}">Click here</a> to reset your password.</p>
+      `,
+    });
+
+    return res.status(200).json({
+      status: true,
+      message: "Password reset link sent successfully. Please check your email.",
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      status: false,
+      message: "Server Error",
+      error: err.message,
+    });
+  }
+}
 }
 
 module.exports = new AuthController();
