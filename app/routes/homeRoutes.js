@@ -13,4 +13,5 @@ router.post(
   checkRole("user"),
   DoctorControllerUser.apponintmentCreate,
 );
+router.post(`/user/logout`, AuthController.userLogout);
 module.exports = router;

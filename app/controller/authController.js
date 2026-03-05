@@ -142,7 +142,6 @@ class AuthController {
 
   async signIn(req, res) {
     try {
-      // Validate login input
       const { error, value } = loginvalidate.validate(req.body);
       if (error) {
         return res.status(400).json({
@@ -153,7 +152,6 @@ class AuthController {
 
       const { email, password } = value;
 
-      // Check if user exists
       let user = await userSchema.findOne({ email });
       if (!user) {
         return res.status(401).json({
@@ -162,7 +160,6 @@ class AuthController {
         });
       }
 
-      // Check password match
       let isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
         return res.status(401).json({
@@ -171,33 +168,26 @@ class AuthController {
         });
       }
 
-      // Generate access token
-      let token = jwt.sign(
-        { id: user._id, role: user.role },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "5m" },
-      );
+      let token = jwt.sign({ id: user._id, role: user.role }, "secret_key", {
+        expiresIn: "5m",
+      });
 
-      // Generate refresh token
       let refreshToken = jwt.sign(
         { id: user._id, role: user.role },
-        process.env.REFRESH_TOKEN_SECRET,
+        "secret_refresh",
         { expiresIn: "7d" },
       );
 
-      // Save the refresh token to the user
       user.refreshToken = refreshToken;
       await user.save();
 
-      // Set refresh token in cookies
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // Use true in production
+        // secure: secret_refresh === "production",
         sameSite: "lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
-      // Respond with success and tokens
       res.status(200).json({
         status: true,
         message: "Login successful",
@@ -333,6 +323,42 @@ class AuthController {
         error: err.message,
       });
     }
+  }
+
+  async userLogout(req, res) {
+    try {
+      let userToken = req.cookies.refreshToken;
+      if (!userToken) {
+        return res.status(400).json({
+          status: false,
+          message: "No refresh token found",
+        });
+      }
+      let account = await userSchema.findOne({ refreshToken: userToken });
+      if (!account) {
+        account = await adminSchema.findOne({ refreshToken: userToken });
+      }
+
+      if (account) {
+        userToken.refreshToken = null;
+        await userToken.save();
+      }
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        path: "/",
+        secure: true,
+        sameSite: "none",
+      });
+
+      res.status(200).json({
+        status: true,
+        message: "Refresh Token removed successfully",
+      });
+    } catch (err) {}
+    res.status(200).json({
+      status: true,
+      message: "Refresh Token removed successfully",
+    });
   }
 }
 

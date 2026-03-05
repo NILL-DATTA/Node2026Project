@@ -14,6 +14,7 @@ router.post("/admin/doctor/delete", adminController.doctorDelete);
 router.post("/admin/doctor/update", adminController.doctorUpdate);
 router.get("/admin/doctor/details/:id", adminController.doctorDetails);
 router.post("/admin/doctor/department", adminController.departmentCreate);
+
 router.put("/admin/doctor/appointment/:id", adminController.confirmAppointment);
 router.put(
   "/admin/doctor/appointment/cancelld/:id",
