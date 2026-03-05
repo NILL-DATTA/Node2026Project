@@ -360,6 +360,23 @@ class AuthController {
       message: "Refresh Token removed successfully",
     });
   }
+  async profile(req, res) {
+    try {
+      let profile = await userSchema.findById(req.user.id);
+      console.log(profile, "profile");
+      res.status(200).json({
+        status: true,
+        data: profile,
+        message: "Profile fetch successfully",
+      });
+    } catch (err) {
+      re.status(500).json({
+        status: false,
+        message: "Error showing",
+        error: err.message,
+      });
+    }
+  }
 }
 
 module.exports = new AuthController();
