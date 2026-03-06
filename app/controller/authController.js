@@ -267,7 +267,7 @@ class AuthController {
 
       res.status(200).json({
         status: true,
-        token: newRefreshToken,
+        token: newAccessToken,
         message: "Access token refreshed successfully",
       });
     } catch (err) {

@@ -11,6 +11,7 @@ router.post("/refresh-token", AuthController.refreshToken);
 router.post(
   "/doctor/appointment",
   checkRole("user"),
+  
   DoctorControllerUser.apponintmentCreate,
 );
 router.get(`/user/profile`, checkRole("user"), AuthController.profile);
