@@ -16,4 +16,5 @@ router.post(
 router.get(`/user/profile`, checkRole("user"), AuthController.profile);
 router.post(`/user/logout`, checkRole("user"), AuthController.userLogout);
 router.post(`/auth/resetlink`, AuthController.ResetLink);
+router.post(`/reset-password/:id/:token`, AuthController.resetPassword);
 module.exports = router;

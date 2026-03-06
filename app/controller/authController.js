@@ -8,8 +8,9 @@ const { loginvalidate } = require("../validators/authvalidator");
 const adminSchema = require("../model/adminUser");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const resetValidate = require("../validators/resetPasswordvalidator");
-const  transporter  = require("../config/emailConfig");
+const resetValidate = require("../validators/resetValidate");
+const transporter = require("../config/emailConfig");
+const resetLinkValidate = require("../validators/resetPasswordvalidator");
 
 class AuthController {
   async signUp(req, res) {
@@ -373,7 +374,7 @@ class AuthController {
         message: "Profile fetch successfully",
       });
     } catch (err) {
-      re.status(500).json({
+      res.status(500).json({
         status: false,
         message: "Error showing",
         error: err.message,
@@ -381,61 +382,119 @@ class AuthController {
     }
   }
 
-async ResetLink(req, res) {
-  try {
-    const { error, value } = resetValidate.validate(req.body);
+  async ResetLink(req, res) {
+    try {
+      const { error, value } = resetLinkValidate.validate(req.body);
 
-    if (error) {
-      return res.status(400).json({
-        status: false,
-        message: error.details.map((item) => item.message).join(", "),
+      if (error) {
+        return res.status(400).json({
+          status: false,
+          message: error.details.map((item) => item.message).join(", "),
+        });
+      }
+
+      const { email } = value;
+
+      const emailCheck = await userSchema.findOne({ email });
+
+      if (!emailCheck) {
+        return res.status(400).json({
+          status: false,
+          message: "Email doesn't exist",
+        });
+      }
+
+      const secret = emailCheck._id + process.env.JWT_SECRET;
+
+      const secretToken = jwt.sign({ id: emailCheck._id }, secret, {
+        expiresIn: "5m",
       });
-    }
 
-    const { email } = value;
+      const resetLink = `http://localhost:3000/auth/reset-password/${emailCheck._id}/${secretToken}`;
 
-    const emailCheck = await userSchema.findOne({ email });
-
-    if (!emailCheck) {
-      return res.status(400).json({
-        status: false,
-        message: "Email doesn't exist",
-      });
-    }
-
-    const secret = emailCheck._id + process.env.JWT_SECRET;
-
-    const secretToken = jwt.sign(
-      { id: emailCheck._id },
-      secret,
-      { expiresIn: "5m" }
-    );
-
-    const resetLink = `http://localhost:3000/auth/reset-password/${emailCheck._id}/${secretToken}`;
-
-    await transporter.sendMail({
-      from: process.env.SMTP_EMAIL,
-      to: emailCheck.email,
-      subject: "Password reset link",
-      html: `
+      await transporter.sendMail({
+        from: process.env.SMTP_EMAIL,
+        to: emailCheck.email,
+        subject: "Password reset link",
+        html: `
         <p>Hello ${emailCheck.name},</p>
         <p>Please <a href="${resetLink}">Click here</a> to reset your password.</p>
       `,
-    });
+      });
 
-    return res.status(200).json({
-      status: true,
-      message: "Password reset link sent successfully. Please check your email.",
-    });
-
-  } catch (err) {
-    return res.status(500).json({
-      status: false,
-      message: "Server Error",
-      error: err.message,
-    });
+      return res.status(200).json({
+        status: true,
+        message:
+          "Password reset link sent successfully. Please check your email.",
+      });
+    } catch (err) {
+      return res.status(500).json({
+        status: false,
+        message: "Server Error",
+        error: err.message,
+      });
+    }
   }
-}
+
+  async resetPassword(req, res) {
+    try {
+      const { id, token } = req.params;
+      const { error, value } = resetValidate.validate(req.body);
+
+      if (error) {
+        return res.status(400).json({
+          status: false,
+          message: error.details.map((d) => d.message).join(", "),
+        });
+      }
+
+      const { password, confirm_password } = value;
+
+      const user = await userSchema.findById(id);
+      if (!user) {
+        return res.status(400).json({
+          status: false,
+          message: "User not find",
+        });
+      }
+
+      const secret = user._id + process.env.JWT_SECRET;
+      try {
+        jwt.verify(token, secret);
+      } catch (err) {
+        return res.status(400).json({
+          status: false,
+          message: "Invalid token",
+          error: err.message,
+        });
+      }
+
+      if (password !== confirm_password) {
+        return res.status(400).json({
+          status: false,
+          message: "New Password and Confirm New Password do not match",
+        });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const newHaspassword = await bcrypt.hash(password, salt);
+
+      await userSchema.findByIdAndUpdate(user._id, {
+        $set: { password: newHaspassword },
+      });
+
+      res.status(200).json({
+        status: true,
+        message: "Reset your password successfully",
+      });
+    } catch (err) {
+      return res.status(500).json({
+        status: false,
+        message: "Error showing",
+        error: err.message,
+      });
+    }
+  }
 }
 
 module.exports = new AuthController();
