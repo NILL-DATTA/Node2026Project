@@ -267,7 +267,7 @@ class AuthController {
 
       res.status(200).json({
         status: true,
-        token: newAccessToken,
+        token: newRefreshToken,
         message: "Access token refreshed successfully",
       });
     } catch (err) {
@@ -278,56 +278,56 @@ class AuthController {
       });
     }
   }
-  async resendOtp(req, res) {
-    try {
-      let { email } = req.body;
+  // async resendOtp(req, res) {
+  //   try {
+  //     let { email } = req.body;
 
-      let userCheck = await userSchema.findOne({ email });
+  //     let userCheck = await userSchema.findOne({ email });
 
-      if (!userCheck) {
-        return res.status(400).json({
-          status: false,
-          message: "User not found",
-        });
-      }
+  //     if (!userCheck) {
+  //       return res.status(400).json({
+  //         status: false,
+  //         message: "User not found",
+  //       });
+  //     }
 
-      if (userCheck.resendCount >= 3) {
-        return res.status(400).json({
-          status: false,
-          message: "Otp limit crossed",
-        });
-      }
+  //     if (userCheck.resendCount >= 3) {
+  //       return res.status(400).json({
+  //         status: false,
+  //         message: "Otp limit crossed",
+  //       });
+  //     }
 
-      let now = Date.now();
+  //     let now = Date.now();
 
-      if (userCheck.lastSentAt && now - userCheck.lastSentAt < 30000) {
-        return res.status(400).json({
-          status: false,
-          message: "after 30 sec you will able",
-        });
-      }
+  //     if (userCheck.lastSentAt && now - userCheck.lastSentAt < 30000) {
+  //       return res.status(400).json({
+  //         status: false,
+  //         message: "after 30 sec you will able",
+  //       });
+  //     }
 
-      const otp = generateOTP();
-      userCheck.otp = otp;
-      userCheck.otpExpires = now + 2 * 60 * 1000;
-      userCheck.resendCount += 1;
-      userCheck.lastSentAt = now;
-      await userCheck.save();
+  //     const otp = generateOTP();
+  //     userCheck.otp = otp;
+  //     userCheck.otpExpires = now + 2 * 60 * 1000;
+  //     userCheck.resendCount += 1;
+  //     userCheck.lastSentAt = now;
+  //     await userCheck.save();
 
-      await sendEmailverificationOtp(userCheck);
+  //     await sendEmailverificationOtp(userCheck);
 
-      res.status(200).json({
-        status: true,
-        message: "Otp resend succesfully",
-      });
-    } catch (err) {
-      res.status(500).json({
-        status: false,
-        message: "Error showing",
-        error: err.message,
-      });
-    }
-  }
+  //     res.status(200).json({
+  //       status: true,
+  //       message: "Otp resend succesfully",
+  //     });
+  //   } catch (err) {
+  //     res.status(500).json({
+  //       status: false,
+  //       message: "Error showing",
+  //       error: err.message,
+  //     });
+  //   }
+  // }
 
   async userLogout(req, res) {
     try {

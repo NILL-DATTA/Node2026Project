@@ -8,7 +8,6 @@ const DepartmentSchema = require("../model/AdmindepartmentModel");
 const adminSchema = require("../model/adminUser");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { refreshToken } = require("./authController");
 
 class AdminController {
   async signIn(req, res) {
@@ -120,12 +119,12 @@ class AdminController {
 
       let { name, specialization, fees, availableSlots, departmentId } = value;
       //   let userId = req?.user?.id;
-      let exist = await DoctorSchema.findOne({ name });
-      if (exist) {
-        return res.status(400).json({
-          message: "Product with same name already exist",
-        });
-      }
+      // let exist = await DoctorSchema.findOne({ departmentId });
+      // if (exist) {
+      //   return res.status(400).json({
+      //     message: "Same Id already exist",
+      //   });
+      // }
       let data = new DoctorSchema({
         name,
         specialization,
@@ -157,8 +156,6 @@ class AdminController {
       limit = parseInt(limit);
       const skip = (page - 1) * limit;
       const totalItems = await DoctorSchema.countDocuments();
-
-      page = await DoctorSchema.create();
 
       let list = await DoctorSchema.find()
         .sort({ createdAt: -1 })
@@ -396,15 +393,16 @@ class AdminController {
 
   async departmentwiseDoctor(req, res) {
     try {
-      let { departmentId } = req.params;
-      console.log(departmentId);
-      let doctors = await DoctorSchema.find(
-        departmentId ? { departmentId: departmentId } : {},
-      ).populate("departmentId");
+      const { departmentId } = req.params;
+      console.log(departmentId, "departmentId");
+      const doctors = await DoctorSchema.find({
+        departmentId: departmentId,
+      }).populate("departmentId");
 
+      console.log(doctors, "doctors");
       res.status(200).json({
         status: true,
-        count: doctors.count,
+        count: doctors.length,
         data: doctors,
         message: "Doctor fetched successfully",
       });
