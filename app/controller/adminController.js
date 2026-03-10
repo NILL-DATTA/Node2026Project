@@ -198,7 +198,7 @@ class AdminController {
       res.status(200).json({
         status: true,
         data: searchData,
-        message: `${search} fetch successfully`,
+        message: `${search} found successfully`,
       });
     } catch (err) {
       res.status(500).json({
