@@ -2,6 +2,8 @@ let appointmentValidate = require("../validators/appointmentvalidator");
 let AppointmentSchema = require("../model/AppointmentModel");
 let transporter = require("../config/emailConfig");
 const userSchema = require("../model/authModel");
+const DoctorSchema = require("../model/AdminModel");
+
 class DoctorControllerUser {
   async apponintmentCreate(req, res) {
     try {
@@ -61,6 +63,34 @@ class DoctorControllerUser {
         status: false,
         error: err.message,
         message: "Error creating appointment",
+      });
+    }
+  }
+
+  async user_doctorListData(req, res) {
+    try {
+      let { page = 1, limit = 10 } = req.body;
+      page = parseInt(page);
+      limit = parseInt(limit);
+      const skip = (page - 1) * limit;
+      const totalItems = await DoctorSchema.countDocuments();
+
+      let list = await DoctorSchema.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+      res.status(201).json({
+        message: "Doctor list fetch successfull",
+        page,
+        limit,
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit),
+        data: list,
+      });
+    } catch (err) {
+      res.status(500).json({
+        status: false,
+        message: err.message,
       });
     }
   }
