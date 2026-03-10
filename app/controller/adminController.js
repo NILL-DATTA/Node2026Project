@@ -182,7 +182,10 @@ class AdminController {
       let search = req.params.searchData;
       console.log(search, "search");
       let searchData = await DoctorSchema.find({
-        name: { $regex: String(search), $options: "i" },
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { fees: Number(search) },
+        ],
       });
 
       if (searchData.length == 0) {
