@@ -177,6 +177,35 @@ class AdminController {
     }
   }
 
+  async searchList(req, res) {
+    try {
+      let search = req.params.searchData;
+      console.log(search, "search");
+      let searchData = await DoctorSchema.find({
+        name: { $regex: String(search), $options: "i" },
+      });
+
+      if (searchData.length == 0) {
+        return res.status(404).json({
+          status: false,
+          message: "Doctor not found",
+        });
+      }
+
+      res.status(200).json({
+        status: true,
+        data: searchData,
+        message: `${search} fetch successfully`,
+      });
+    } catch (err) {
+      res.status(500).json({
+        status: false,
+        message: `Error showing`,
+        error: err.message,
+      });
+    }
+  }
+
   async doctorDelete(req, res) {
     try {
       const listData = req.body.id;
@@ -428,6 +457,34 @@ class AdminController {
         status: false,
         message: "Error showing",
         error: err.message,
+      });
+    }
+  }
+
+  async departMentdelete(req, res) {
+    try {
+      const departMentId = req.body.id;
+
+      const department = await DepartmentSchema.findOne({ _id: departMentId });
+      console.log(department, "departMentId");
+      if (!department) {
+        return res.status(401).json({
+          status: false,
+          message: "Department not found",
+        });
+      }
+
+      const data = await DepartmentSchema.findByIdAndDelete(departMentId);
+      console.log(data, "jkcf");
+      return res.status(201).json({
+        status: true,
+        message: "Department data delete successfully",
+        data: data,
+      });
+    } catch (err) {
+      return res.status(500).json({
+        status: false,
+        message: err.message,
       });
     }
   }

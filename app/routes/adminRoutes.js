@@ -4,6 +4,7 @@ const AuthController = require("../controller/authController");
 
 const checkRole = require("../../app/middleware/auth");
 const router = express.Router();
+
 router.post("/admin/refresh-token", AuthController.refreshToken);
 router.post("/admin/auth/login", adminController.signIn);
 router.use(checkRole("admin"));
@@ -28,6 +29,8 @@ router.get(
 );
 
 router.get(`/admin/departments/list`, adminController.departmentList);
-router.post(`/admin/logout`, adminController.adminLogout);
 
+router.post(`/admin/logout`, adminController.adminLogout);
+router.post(`/admin/department/delete`, adminController.departMentdelete);
+router.get(`/admin/department/doctors/:searchData`, adminController.searchList);
 module.exports = router;
