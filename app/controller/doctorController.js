@@ -16,7 +16,7 @@ class DoctorControllerUser {
         });
       }
 
-      let { doctorId, userId, date, time, status } = value;
+      let { doctorId, userId, date, time, status, name } = value;
 
       let user = await userSchema.findById(userId);
 
@@ -40,6 +40,7 @@ class DoctorControllerUser {
         doctorId,
         userId,
         date,
+        name,
         time,
         status,
       });
