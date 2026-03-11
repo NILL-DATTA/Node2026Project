@@ -10,7 +10,7 @@ router.post("/admin/auth/login", adminController.signIn);
 router.use(checkRole("admin"));
 
 router.post("/admin/doctor/create", adminController.createDoctor);
-router.post("/admin/doctor/list", adminController.doctorListData);
+router.get("/admin/doctor/list", adminController.doctorListData);
 router.post("/admin/doctor/delete", adminController.doctorDelete);
 router.post("/admin/doctor/update", adminController.doctorUpdate);
 router.get("/admin/doctor/details/:id", adminController.doctorDetails);
