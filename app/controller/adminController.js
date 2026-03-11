@@ -149,74 +149,68 @@ class AdminController {
     }
   }
 
-async doctorListData(req, res) {
-  try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 5;
-    const search = req.query.search || "";
+  async doctorListData(req, res) {
+    try {
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 5;
+      const search = req.query.search || "";
 
-    const skip = (page - 1) * limit;
+      const skip = (page - 1) * limit;
 
-    const pipeline = [
-      {
-        $match: {
-          $or: [
-            { name: { $regex: search, $options: "i" } },
-            { specialization: { $regex: search, $options: "i" } }
-          ]
-        }
-      },
-      {
-        $lookup: {
-          from: "departments",
-          localField: "departmentId",
-          foreignField: "_id",
-          as: "department"
-        }
-      },
-      {
-        $unwind: {
-          path: "$department",
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $sort: { createdAt: -1 }
-      },
-      {
-        $facet: {
-          data: [
-            { $skip: skip },
-            { $limit: limit }
-          ],
-          totalCount: [
-            { $count: "count" }
-          ]
-        }
-      }
-    ];
+      const pipeline = [
+        {
+          $match: {
+            $or: [
+              { name: { $regex: search, $options: "i" } },
+              { specialization: { $regex: search, $options: "i" } },
+            ],
+          },
+        },
+        {
+          $lookup: {
+            from: "departments",
+            localField: "departmentId",
+            foreignField: "_id",
+            as: "department",
+          },
+        },
+        {
+          $unwind: {
+            path: "$department",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $sort: { createdAt: -1 },
+        },
+        {
+          $facet: {
+            data: [{ $skip: skip }, { $limit: limit }],
+            totalCount: [{ $count: "count" }],
+          },
+        },
+      ];
 
-    const result = await DoctorSchema.aggregate(pipeline);
+      const result = await DoctorSchema.aggregate(pipeline);
 
-    const doctors = result[0].data;
-    const totalItems = result[0].totalCount[0]?.count || 0;
+      const doctors = result[0].data;
+      const totalItems = result[0].totalCount[0]?.count || 0;
 
-    res.status(200).json({
-      message: "Doctor list fetch successful",
-      page,
-      limit,
-      totalItems,
-      totalPages: Math.ceil(totalItems / limit),
-      data: doctors
-    });
-
-  } catch (err) {
-    res.status(500).json({
-      status: false,
-      message: err.message
-    });
+      res.status(200).json({
+        message: "Doctor list fetch successful",
+        page,
+        limit,
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit),
+        data: doctors,
+      });
+    } catch (err) {
+      res.status(500).json({
+        status: false,
+        message: err.message,
+      });
+    }
   }
-}
 
   async searchList(req, res) {
     try {
@@ -362,7 +356,14 @@ async doctorListData(req, res) {
       appointMent.status = "Confirmed";
       await appointMent.save();
 
-      let user = await adminSchema.findById(appointMent.userId);
+      let user = await userSchema.findById(appointMent.userId);
+
+      if (!user) {
+        return res.status(404).json({
+          status: false,
+          message: "User not found",
+        });
+      }
       await transporter.sendMail({
         from: `"Hospital Management"<yourgmail@gmail.com>`,
         to: user.email,
@@ -406,17 +407,26 @@ async doctorListData(req, res) {
         });
       }
 
+      console.log(appointMent, "user");
       if (appointMent.status == "Cancelled") {
         return res.status(400).json({
           status: false,
-          message: "Appoinment Cancelled",
+          message: "Appoinment already Cancelled",
         });
       }
 
       appointMent.status = "Cancelled";
       await appointMent.save();
 
-      let user = await adminSchema.findById(appointMent.userId);
+      let user = await userSchema.findById(appointMent.userId);
+
+      if (!user) {
+        return res.status(404).json({
+          status: false,
+          message: "User not found",
+        });
+      }
+
       await transporter.sendMail({
         from: `"Hospital Management" <yourgmail@gmail.com>`,
         to: user.email,

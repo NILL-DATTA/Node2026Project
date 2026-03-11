@@ -18,6 +18,15 @@ class DoctorControllerUser {
 
       let { doctorId, userId, date, time, status } = value;
 
+      let user = await userSchema.findById(userId);
+
+      if (!user) {
+        return res.status(404).json({
+          status: false,
+          message: "User not found",
+        });
+      }
+
       let exist = await AppointmentSchema.findOne({ time });
 
       if (exist) {
@@ -34,7 +43,7 @@ class DoctorControllerUser {
         time,
         status,
       });
-      let user = await userSchema.findById(userId);
+      // let user = await userSchema.findById(userId);
       await transporter.sendMail({
         from: `"Hospital Management" <yourgmail@gmail.com>`,
         to: user.email,
