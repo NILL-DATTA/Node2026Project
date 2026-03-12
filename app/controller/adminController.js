@@ -543,6 +543,41 @@ class AdminController {
     }
   }
 
+  async appointMentAccpetlist(req, res) {
+    try {
+      let today = new Date();
+      today.setHours(0, 0, 0, 0);
+      let nextday = new Date();
+      nextday.setDate(today.getDate() + 7);
+      nextday.setHours(23, 59, 59, 999);
+      console.log(today, "Today");
+      console.log(nextday, "NextDay");
+      const list = await AppointmentSchema.aggregate([
+        {
+          $match: {
+            status: "Confirmed",
+            date: { $gte: today, $lte: nextday },
+          },
+        },
+        {
+          $sort: { date: 1 },
+        },
+      ]);
+
+      res.status(200).json({
+        status: true,
+        data: list,
+        message: "Data fetch list successfully",
+      });
+    } catch (err) {
+      res.status(500).json({
+        status: false,
+        error: err.message,
+        message: "Error showing",
+      });
+    }
+  }
+
   async adminLogout(req, res) {
     try {
       let adminToken = req.cookies.refreshToken;

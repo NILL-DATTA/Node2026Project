@@ -32,5 +32,9 @@ router.get(`/admin/departments/list`, adminController.departmentList);
 
 router.post(`/admin/logout`, adminController.adminLogout);
 router.post(`/admin/department/delete`, adminController.departMentdelete);
+router.get(
+  `/admin/appointment/acceptedlist`,
+  adminController.appointMentAccpetlist,
+);
 router.get(`/admin/department/doctors/:searchData`, adminController.searchList);
 module.exports = router;
