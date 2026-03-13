@@ -36,5 +36,5 @@ router.get(
   `/admin/appointment/acceptedlist`,
   adminController.appointMentAccpetlist,
 );
-router.get(`/admin/department/doctors/:searchData`, adminController.searchList);
+// router.get(`/admin/department/doctors/:searchData`, adminController.searchList);
 module.exports = router;

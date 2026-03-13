@@ -108,7 +108,6 @@ class DoctorControllerUser {
   async userSearchList(req, res) {
     try {
       let search = req.params.searchData;
-      console.log(search, "search");
       let searchData = await DoctorSchema.find({
         $or: [
           { name: { $regex: search, $options: "i" } },
