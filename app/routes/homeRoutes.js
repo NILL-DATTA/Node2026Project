@@ -23,9 +23,9 @@ router.post(
   checkRole("user"),
   DoctorControllerUser.user_doctorListData,
 );
-router.get(
-  `/user/department/doctors/:searchData`,
-  checkRole("user"),
-  DoctorControllerUser.userSearchList,
-);
+// router.get(
+//   `/user/department/doctors/:searchData`,
+//   checkRole("user"),
+//   DoctorControllerUser.userSearchList,
+// );
 module.exports = router;
