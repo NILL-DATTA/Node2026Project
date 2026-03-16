@@ -16,10 +16,7 @@ const DoctorSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
-  specialization: {
-    type: String,
-    required: true,
-  },
+ 
 
   departmentId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -32,6 +29,9 @@ const DoctorSchema = new mongoose.Schema({
     required: true,
   },
   availableSlots: [SlotSchema],
-});
+
+},
+  { timestamps: true } 
+);
 
 module.exports = mongoose.model("DoctorSchema", DoctorSchema);

@@ -117,7 +117,7 @@ class AdminController {
         });
       }
 
-      let { name, specialization, fees, availableSlots, departmentId } = value;
+      let { name, fees, availableSlots, departmentId } = value;
       //   let userId = req?.user?.id;
       // let exist = await DoctorSchema.findOne({ departmentId });
       // if (exist) {
@@ -127,7 +127,6 @@ class AdminController {
       // }
       let data = new DoctorSchema({
         name,
-        specialization,
         fees,
         availableSlots,
         departmentId,
@@ -156,16 +155,7 @@ class AdminController {
       const search = req.query.search || "";
 
       const skip = (page - 1) * limit;
-
       const pipeline = [
-        {
-          $match: {
-            $or: [
-              { name: { $regex: search, $options: "i" } },
-              { specialization: { $regex: search, $options: "i" } },
-            ],
-          },
-        },
         {
           $lookup: {
             from: "departments",
@@ -180,6 +170,15 @@ class AdminController {
             preserveNullAndEmptyArrays: true,
           },
         },
+        {
+          $match: {
+            $or: [
+              { name: { $regex: search, $options: "i" } },
+              { "department.name": { $regex: search, $options: "i" } },
+            ],
+          },
+        },
+
         {
           $sort: { createdAt: -1 },
         },
@@ -274,7 +273,7 @@ class AdminController {
 
   async doctorUpdate(req, res) {
     try {
-      const { id, name, specialization, fees, availableSlots } = req.body;
+      const { id, name, fees, availableSlots } = req.body;
       const existupdate = await DoctorSchema.findOne({ _id: id });
       if (!existupdate) {
         return res.status(400).json({
@@ -285,7 +284,7 @@ class AdminController {
 
       let updateData = await DoctorSchema.findByIdAndUpdate(
         existupdate,
-        { name, specialization, fees, availableSlots },
+        { name, fees, availableSlots },
         { new: true }, //return new data
       );
 

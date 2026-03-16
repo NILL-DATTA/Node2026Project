@@ -1,5 +1,6 @@
 const express = require("express");
 const AuthController = require("../controller/authController");
+const MapController = require("../controller/mapController");
 const DoctorControllerUser = require("../controller/doctorController");
 const checkRole = require("../../app/middleware/auth");
 const router = express.Router();
@@ -28,4 +29,7 @@ router.post(
 //   checkRole("user"),
 //   DoctorControllerUser.userSearchList,
 // );
+
+router.get(`/diagnostic/nearby`, MapController.areaMap);
+
 module.exports = router;

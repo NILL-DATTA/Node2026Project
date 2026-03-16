@@ -14,11 +14,7 @@ const adminDoctorvalidate = joi.object({
     "string.min": '"name" should have at least {#limit} characters',
     "any.required": `"name" is required`,
   }),
-  specialization: joi.string().required().messages({
-    "string.empty": `"category" cannot be empty`,
-    "string.min": `"category" should have at least {#limit} characters`,
-    "any.required": `"category" is required`,
-  }),
+ 
   fees: joi.string().required().messages({
     "string.empty": `"price" cannot be empty`,
     "string.min": `"price" should have at least {#limit} characters`,

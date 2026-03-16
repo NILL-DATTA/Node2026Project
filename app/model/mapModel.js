@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const mapSchema = new mongoose.Schema({
@@ -17,11 +16,11 @@ const mapSchema = new mongoose.Schema({
 
   location: {
     type: {
-      type: string,
+      type: String,
       default: "Point",
     },
     coordinates: [Number],
   },
 });
-DiagnosticSchema.index({ location: "2dsphere" });
+mapSchema.index({ location: "2dsphere" });
 module.exports = mongoose.model("mapSchema", mapSchema);

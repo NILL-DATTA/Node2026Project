@@ -3,6 +3,7 @@ const adminController = require("../controller/adminController");
 const AuthController = require("../controller/authController");
 
 const checkRole = require("../../app/middleware/auth");
+const mapController = require("../controller/mapController");
 const router = express.Router();
 
 router.post("/admin/refresh-token", AuthController.refreshToken);
@@ -37,4 +38,5 @@ router.get(
   adminController.appointMentAccpetlist,
 );
 // router.get(`/admin/department/doctors/:searchData`, adminController.searchList);
+router.post(`/admin/diagnostic/create`, mapController.createCenter);
 module.exports = router;

@@ -87,14 +87,6 @@ class DoctorControllerUser {
 
       const pipeline = [
         {
-          $match: {
-            $or: [
-              { name: { $regex: search, $options: "i" } },
-              { specialization: { $regex: search, $options: "i" } },
-            ],
-          },
-        },
-        {
           $lookup: {
             from: "departments",
             localField: "departmentId",
@@ -108,6 +100,15 @@ class DoctorControllerUser {
             preserveNullAndEmptyArrays: true,
           },
         },
+        {
+          $match: {
+            $or: [
+              { name: { $regex: search, $options: "i" } },
+              { "department.name": { $regex: search, $options: "i" } },
+            ],
+          },
+        },
+
         {
           $sort: { createdAt: -1 },
         },
