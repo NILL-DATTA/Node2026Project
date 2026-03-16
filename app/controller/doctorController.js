@@ -27,7 +27,12 @@ class DoctorControllerUser {
         });
       }
 
-      let exist = await AppointmentSchema.findOne({ time });
+      let exist = await AppointmentSchema.findOne({
+        doctorId,
+        date,
+        time,
+        status: { $ne: "Cancelled" },
+      });
 
       if (exist) {
         return res.status(401).json({
