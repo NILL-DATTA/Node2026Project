@@ -8,6 +8,7 @@ const DepartmentSchema = require("../model/AdmindepartmentModel");
 const adminSchema = require("../model/adminUser");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const slotSchemaModel = require("../model/slotSchemaModel");
 
 class AdminController {
   async signIn(req, res) {
@@ -105,48 +106,45 @@ class AdminController {
         .json({ message: "Error creating department", error: err });
     }
   }
+async createDoctor(req, res) {
+  try {
+    const { error, value } = adminDoctorvalidate.validate(req.body);
 
-  async createDoctor(req, res) {
-    try {
-      const { error, value } = adminDoctorvalidate.validate(req.body);
-
-      if (error) {
-        return res.status(400).json({
-          status: false,
-          message: error.details[0].message,
-        });
-      }
-
-      let { name, fees, availableSlots, departmentId } = value;
-      //   let userId = req?.user?.id;
-      // let exist = await DoctorSchema.findOne({ departmentId });
-      // if (exist) {
-      //   return res.status(400).json({
-      //     message: "Same Id already exist",
-      //   });
-      // }
-      let data = new DoctorSchema({
-        name,
-        fees,
-        availableSlots,
-        departmentId,
-      });
-
-      let savePost = await data.save();
-      //  savePost = await DoctorSchema.findById(savePost.id).populate(
-      //   "departmentId",
-      // );
-      return res.status(201).json({
-        message: "Doctor  data create  successfully",
-        data: savePost,
-      });
-    } catch (err) {
-      res.status(500).json({
+    if (error) {
+      return res.status(400).json({
         status: false,
-        message: err.message,
+        message: error.details[0].message,
       });
     }
+
+    let { name, fees, departmentId, schedule } = value;
+
+    let data = new DoctorSchema({
+      name,
+      fees,
+      departmentId,
+      schedule: {
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        slotDuration: schedule.slotDuration,
+      },
+    });
+
+    let savePost = await data.save();
+
+    return res.status(201).json({
+      status: true,
+      message: "Doctor data created successfully",
+      data: savePost,
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      status: false,
+      message: err.message,
+    });
   }
+}
 
   async doctorListData(req, res) {
     try {
