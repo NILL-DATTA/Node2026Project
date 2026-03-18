@@ -654,6 +654,8 @@ async doctorUpdate(req, res) {
       message: "Refresh Token removed successfully",
     });
   }
+
+  
 }
 
 module.exports = new AdminController();

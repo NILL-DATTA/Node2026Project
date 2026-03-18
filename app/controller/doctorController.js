@@ -19,7 +19,6 @@ class DoctorControllerUser {
 
       let { doctorId, userId, date, time, name } = value;
 
-
       let user = await userSchema.findById(userId);
       if (!user) {
         return res.status(404).json({
@@ -28,7 +27,6 @@ class DoctorControllerUser {
         });
       }
 
-    
       const slot = await slotSchemaModel.findOneAndUpdate(
         {
           doctorId,
@@ -50,17 +48,15 @@ class DoctorControllerUser {
         });
       }
 
-
       let data = await AppointmentSchema.create({
         doctorId,
         userId,
         date,
         name,
         time,
-        status: "Pending", 
+        status: "Pending",
       });
 
-      
       await transporter.sendMail({
         from: `"Hospital Management" <yourgmail@gmail.com>`,
         to: user.email,
@@ -153,37 +149,35 @@ class DoctorControllerUser {
       });
     }
   }
+  async getDoctorSlots(req, res) {
+    try {
+      const { doctorId, date } = req.body;
 
-  // async userSearchList(req, res) {
-  //   try {
-  //     let search = req.params.searchData;
-  //     let searchData = await DoctorSchema.find({
-  //       $or: [
-  //         { name: { $regex: search, $options: "i" } },
-  //         { fees: Number(search) },
-  //       ],
-  //     });
+      if (!doctorId || !date) {
+        return res.status(400).json({
+          status: false,
+          message: "doctorId and date are required",
+        });
+      }
 
-  //     if (searchData.length == 0) {
-  //       return res.status(404).json({
-  //         status: false,
-  //         message: "Doctor not found",
-  //       });
-  //     }
+      const slots = await slotSchemaModel.find({
+        doctorId,
+        date,
+        isBooked: false,
+      }).sort({ time: 1 });
 
-  //     res.status(200).json({
-  //       status: true,
-  //       data: searchData,
-  //       message: `${search} found successfully`,
-  //     });
-  //   } catch (err) {
-  //     res.status(500).json({
-  //       status: false,
-  //       message: `Error showing`,
-  //       error: err.message,
-  //     });
-  //   }
-  // }
+      return res.status(200).json({
+        status: true,
+        message: "Available slots fetched",
+        data: slots,
+      });
+    } catch (err) {
+      return res.status(500).json({
+        status: false,
+        message: err.message,
+      });
+    }
+  }
 }
 
 module.exports = new DoctorControllerUser();

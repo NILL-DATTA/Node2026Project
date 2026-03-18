@@ -37,6 +37,5 @@ router.get(
   `/admin/appointment/acceptedlist`,
   adminController.appointMentAccpetlist,
 );
-// router.get(`/admin/department/doctors/:searchData`, adminController.searchList);
 router.post(`/admin/diagnostic/create`, mapController.createCenter);
 module.exports = router;
