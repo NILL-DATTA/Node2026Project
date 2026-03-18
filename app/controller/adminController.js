@@ -247,25 +247,20 @@ async doctorUpdate(req, res) {
       });
     }
 
+
     let updateObj = {};
 
-
     if (name) updateObj.name = name;
-    if (fees) updateObj.fees = fees;
+    if (fees !== undefined) updateObj.fees = fees; 
     if (departmentId) updateObj.departmentId = departmentId;
 
-
     if (schedule) {
-      if (schedule.startTime)
-        updateObj["schedule.startTime"] = schedule.startTime;
-
-      if (schedule.endTime)
-        updateObj["schedule.endTime"] = schedule.endTime;
-
-      if (schedule.slotDuration)
-        updateObj["schedule.slotDuration"] = schedule.slotDuration;
+      updateObj.schedule = {
+        ...(schedule.startTime !== undefined && { startTime: schedule.startTime }),
+        ...(schedule.endTime !== undefined && { endTime: schedule.endTime }),
+        ...(schedule.slotDuration !== undefined && { slotDuration: schedule.slotDuration }),
+      };
     }
-
 
     if (Object.keys(updateObj).length === 0) {
       return res.status(400).json({
@@ -274,12 +269,12 @@ async doctorUpdate(req, res) {
       });
     }
 
+
     const updatedDoctor = await DoctorSchema.findByIdAndUpdate(
       id,
       { $set: updateObj },
-      { new: true }
+      { new: true, runValidators: true } 
     );
-
 
     if (!updatedDoctor) {
       return res.status(404).json({
@@ -288,10 +283,8 @@ async doctorUpdate(req, res) {
       });
     }
 
-
     if (schedule) {
       console.log("⚡ Schedule updated → You can regenerate slots here");
-
     }
 
     return res.status(200).json({
@@ -299,7 +292,6 @@ async doctorUpdate(req, res) {
       message: "Doctor updated successfully",
       data: updatedDoctor,
     });
-
   } catch (err) {
     return res.status(500).json({
       status: false,
