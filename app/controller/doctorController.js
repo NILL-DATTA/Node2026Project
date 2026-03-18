@@ -19,7 +19,7 @@ class DoctorControllerUser {
 
       let { doctorId, userId, date, time, name } = value;
 
-      // ✅ user check
+
       let user = await userSchema.findById(userId);
       if (!user) {
         return res.status(404).json({
@@ -28,7 +28,7 @@ class DoctorControllerUser {
         });
       }
 
-      // 🔥 STEP 1: slot lock (atomic)
+    
       const slot = await slotSchemaModel.findOneAndUpdate(
         {
           doctorId,
@@ -50,17 +50,17 @@ class DoctorControllerUser {
         });
       }
 
-      // ✅ STEP 2: appointment create (Pending 🔥)
+
       let data = await AppointmentSchema.create({
         doctorId,
         userId,
         date,
         name,
         time,
-        status: "Pending", // ❗ change here
+        status: "Pending", 
       });
 
-      // ✅ STEP 3: email (Pending message)
+      
       await transporter.sendMail({
         from: `"Hospital Management" <yourgmail@gmail.com>`,
         to: user.email,
@@ -84,7 +84,7 @@ class DoctorControllerUser {
         message: "Appointment request sent, waiting for approval",
       });
     } catch (err) {
-      console.log("❌ Error:", err.message);
+      console.log(" Error:", err.message);
 
       return res.status(500).json({
         status: false,
