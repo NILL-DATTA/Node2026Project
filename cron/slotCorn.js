@@ -8,51 +8,52 @@ cron.schedule("0 0 * * *", async () => {
   try {
     const doctors = await DoctorSchema.find();
 
-    for (let i = 0; i < 7; i++) {
-      let futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + i);
+    let futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 7);
 
-      let date = futureDate.toISOString().split("T")[0];
+    let date = futureDate.toISOString().split("T")[0];
 
-      for (let doctor of doctors) {
-        const { startTime, endTime, slotDuration } = doctor.schedule;
+    for (let doctor of doctors) {
+      const { startTime, endTime, slotDuration } = doctor.schedule;
 
-        let start = new Date(`${date}T${startTime}:00`);
-        let end = new Date(`${date}T${endTime}:00`);
+      let start = new Date(`${date}T${startTime}:00`);
+      let end = new Date(`${date}T${endTime}:00`);
 
-        let slots = [];
+      let slots = [];
 
-        while (start <= end) {
-          slots.push({
-            doctorId: doctor._id,
-            date,
-            time: start.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-          });
+      while (start < end) {
+        slots.push({
+          doctorId: doctor._id,
+          date,
+          time: start.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          isBooked: false,
+        });
 
-          start.setMinutes(start.getMinutes() + slotDuration);
-        }
-
-        const bulkOps = slots.map((slot) => ({
-          updateOne: {
-            filter: {
-              doctorId: slot.doctorId,
-              date: slot.date,
-              time: slot.time,
-            },
-            update: { $setOnInsert: slot },
-            upsert: true,
-          },
-        }));
-
-        await slotSchemaModel.bulkWrite(bulkOps);
+        start.setMinutes(start.getMinutes() + slotDuration);
       }
+
+      if (slots.length === 0) continue;
+
+      const bulkOps = slots.map((slot) => ({
+        updateOne: {
+          filter: {
+            doctorId: slot.doctorId,
+            date: slot.date,
+            time: slot.time,
+          },
+          update: { $setOnInsert: slot },
+          upsert: true,
+        },
+      }));
+
+      await slotSchemaModel.bulkWrite(bulkOps);
     }
 
-    console.log("Slots generated");
+    console.log(`Slots generated for ${date}`);
   } catch (err) {
-    console.log(err.message);
+    console.log("Cron error:", err.message);
   }
 });

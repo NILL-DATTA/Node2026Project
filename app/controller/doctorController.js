@@ -3,6 +3,7 @@ let AppointmentSchema = require("../model/AppointmentModel");
 let transporter = require("../config/emailConfig");
 const userSchema = require("../model/authModel");
 const DoctorSchema = require("../model/AdminModel");
+const slotSchemaModel = require("../model/slotSchemaModel");
 
 class DoctorControllerUser {
   async apponintmentCreate(req, res) {
@@ -16,10 +17,10 @@ class DoctorControllerUser {
         });
       }
 
-      let { doctorId, userId, date, time, status, name } = value;
+      let { doctorId, userId, date, time, name } = value;
 
+      // ✅ user check
       let user = await userSchema.findById(userId);
-
       if (!user) {
         return res.status(404).json({
           status: false,
@@ -27,61 +28,70 @@ class DoctorControllerUser {
         });
       }
 
-      let exist = await AppointmentSchema.findOne({
-        doctorId,
-        date,
-        time,
-        status: { $ne: "Cancelled" },
-      });
+      // 🔥 STEP 1: slot lock (atomic)
+      const slot = await slotSchemaModel.findOneAndUpdate(
+        {
+          doctorId,
+          date,
+          time,
+          isBooked: false,
+        },
+        {
+          isBooked: true,
+          bookedBy: userId,
+        },
+        { new: true },
+      );
 
-      if (exist) {
-        return res.status(401).json({
+      if (!slot) {
+        return res.status(400).json({
           status: false,
-          message: "This time slot is already booked by another patient.",
+          message: "Slot already booked or not available",
         });
       }
 
+      // ✅ STEP 2: appointment create (Pending 🔥)
       let data = await AppointmentSchema.create({
         doctorId,
         userId,
         date,
         name,
         time,
-        status,
+        status: "Pending", // ❗ change here
       });
-      // let user = await userSchema.findById(userId);
+
+      // ✅ STEP 3: email (Pending message)
       await transporter.sendMail({
         from: `"Hospital Management" <yourgmail@gmail.com>`,
         to: user.email,
         subject: "Appointment Booking Pending",
         html: `
         <div style="font-family: Arial;">
-          <h2 style="color: green;"> Appointment Booking  Pending</h2>
+          <h2 style="color: orange;"> Appointment Pending</h2>
           <p>Dear ${user.first_name},</p>
-          <p>Your appointment has been Pending.</p>
+          <p>Your appointment request is pending approval.</p>
           <p><strong>Date:</strong> ${date}</p>
           <p><strong>Time:</strong> ${time}</p>
           <br/>
-          <p>Thank you.</p>
+          <p>Please wait for confirmation.</p>
         </div>
       `,
       });
-      res.status(200).json({
+
+      return res.status(200).json({
         status: true,
         data: data,
-        message: "Appointment created successfully!",
+        message: "Appointment request sent, waiting for approval",
       });
-
-      console.log(data, "jjj");
     } catch (err) {
-      res.status(500).json({
+      console.log("❌ Error:", err.message);
+
+      return res.status(500).json({
         status: false,
-        error: err.message,
         message: "Error creating appointment",
       });
     }
   }
-
   async user_doctorListData(req, res) {
     try {
       const page = Number(req.query.page) || 1;

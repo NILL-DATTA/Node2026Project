@@ -106,45 +106,44 @@ class AdminController {
         .json({ message: "Error creating department", error: err });
     }
   }
-async createDoctor(req, res) {
-  try {
-    const { error, value } = adminDoctorvalidate.validate(req.body);
+  async createDoctor(req, res) {
+    try {
+      const { error, value } = adminDoctorvalidate.validate(req.body);
 
-    if (error) {
-      return res.status(400).json({
+      if (error) {
+        return res.status(400).json({
+          status: false,
+          message: error.details[0].message,
+        });
+      }
+
+      let { name, fees, departmentId, schedule } = value;
+
+      let data = new DoctorSchema({
+        name,
+        fees,
+        departmentId,
+        schedule: {
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          slotDuration: schedule.slotDuration,
+        },
+      });
+
+      let savePost = await data.save();
+
+      return res.status(201).json({
+        status: true,
+        message: "Doctor data created successfully",
+        data: savePost,
+      });
+    } catch (err) {
+      return res.status(500).json({
         status: false,
-        message: error.details[0].message,
+        message: err.message,
       });
     }
-
-    let { name, fees, departmentId, schedule } = value;
-
-    let data = new DoctorSchema({
-      name,
-      fees,
-      departmentId,
-      schedule: {
-        startTime: schedule.startTime,
-        endTime: schedule.endTime,
-        slotDuration: schedule.slotDuration,
-      },
-    });
-
-    let savePost = await data.save();
-
-    return res.status(201).json({
-      status: true,
-      message: "Doctor data created successfully",
-      data: savePost,
-    });
-
-  } catch (err) {
-    return res.status(500).json({
-      status: false,
-      message: err.message,
-    });
   }
-}
 
   async doctorListData(req, res) {
     try {
@@ -208,38 +207,6 @@ async createDoctor(req, res) {
       });
     }
   }
-
-  // async searchList(req, res) {
-  //   try {
-  //     let search = req.params.searchData;
-  //     console.log(search, "search");
-  //     let searchData = await DoctorSchema.find({
-  //       $or: [
-  //         { name: { $regex: search, $options: "i" } },
-  //         { fees: Number(search) },
-  //       ],
-  //     });
-
-  //     if (searchData.length == 0) {
-  //       return res.status(404).json({
-  //         status: false,
-  //         message: "Doctor not found",
-  //       });
-  //     }
-
-  //     res.status(200).json({
-  //       status: true,
-  //       data: searchData,
-  //       message: `${search} found successfully`,
-  //     });
-  //   } catch (err) {
-  //     res.status(500).json({
-  //       status: false,
-  //       message: `Error showing`,
-  //       error: err.message,
-  //     });
-  //   }
-  // }
 
   async doctorDelete(req, res) {
     try {
@@ -329,7 +296,6 @@ async createDoctor(req, res) {
       });
     }
   }
-
   async confirmAppointment(req, res) {
     try {
       let { id } = req.params;
@@ -337,21 +303,39 @@ async createDoctor(req, res) {
       let appointMent = await AppointmentSchema.findById(id);
 
       if (!appointMent) {
-        return res.status(400).json({
+        return res.status(404).json({
           status: false,
           message: "Appointment not found",
         });
       }
 
-      if (appointMent.status == "Confirmed") {
+      if (appointMent.status === "Confirmed") {
         return res.status(400).json({
           status: false,
-          message: "Appoinment already Confirmed",
+          message: "Appointment already confirmed",
+        });
+      }
+
+      if (appointMent.status === "Cancelled") {
+        return res.status(400).json({
+          status: false,
+          message: "Cancelled appointment cannot be confirmed",
         });
       }
 
       appointMent.status = "Confirmed";
       await appointMent.save();
+
+      await slotSchemaModel.findOneAndUpdate(
+        {
+          doctorId: appointMent.doctorId,
+          date: appointMent.date,
+          time: appointMent.time,
+        },
+        {
+          isBooked: true,
+        },
+      );
 
       let user = await userSchema.findById(appointMent.userId);
 
@@ -361,15 +345,16 @@ async createDoctor(req, res) {
           message: "User not found",
         });
       }
+
       await transporter.sendMail({
         from: `"Hospital Management"<yourgmail@gmail.com>`,
         to: user.email,
-        subject: "Appointment Booked Successfully",
+        subject: "Appointment Confirmed",
         html: `
         <div style="font-family: Arial;">
-          <h2 style="color: green;"> Appointment Booked  Successfully</h2>
+          <h2 style="color: green;">Appointment Confirmed</h2>
           <p>Dear ${user.first_name},</p>
-          <p>Your appointment has been BookedSuccessfully.</p>
+          <p>Your appointment has been confirmed.</p>
           <p><strong>Date:</strong> ${appointMent.date}</p>
           <p><strong>Time:</strong> ${appointMent.time}</p>
           <br/>
@@ -377,13 +362,16 @@ async createDoctor(req, res) {
         </div>
       `,
       });
-      res.status(200).json({
+
+      return res.status(200).json({
         status: true,
         data: appointMent,
-        message: "Appoinmtent Confirmed sucessfully",
+        message: "Appointment confirmed successfully",
       });
     } catch (err) {
-      res.status(500).json({
+      console.log("❌ Error:", err.message);
+
+      return res.status(500).json({
         status: false,
         message: "Something went wrong",
         error: err.message,
@@ -398,22 +386,40 @@ async createDoctor(req, res) {
       let appointMent = await AppointmentSchema.findById(id);
 
       if (!appointMent) {
-        return res.status(400).json({
+        return res.status(404).json({
           status: false,
           message: "Appointment not found",
         });
       }
 
-      console.log(appointMent, "user");
-      if (appointMent.status == "Cancelled") {
+      if (appointMent.status === "Cancelled") {
         return res.status(400).json({
           status: false,
-          message: "Appoinment already Cancelled",
+          message: "Appointment already cancelled",
         });
       }
 
+      // if (appointMent.status === "Confirmed") {
+      //   return res.status(400).json({
+      //     status: false,
+      //     message: "Confirmed appointment cannot be cancelled",
+      //   });
+      // }
+
       appointMent.status = "Cancelled";
       await appointMent.save();
+
+      await slotSchemaModel.findOneAndUpdate(
+        {
+          doctorId: appointMent.doctorId,
+          date: appointMent.date,
+          time: appointMent.time,
+        },
+        {
+          isBooked: false,
+          bookedBy: null,
+        },
+      );
 
       let user = await userSchema.findById(appointMent.userId);
 
@@ -427,12 +433,12 @@ async createDoctor(req, res) {
       await transporter.sendMail({
         from: `"Hospital Management" <yourgmail@gmail.com>`,
         to: user.email,
-        subject: "Appointment Booking Cancelled",
+        subject: "Appointment Cancelled",
         html: `
         <div style="font-family: Arial;">
-          <h2 style="color: green;"> Appointment Booking Cancelled</h2>
+          <h2 style="color: red;">Appointment Cancelled</h2>
           <p>Dear ${user.first_name},</p>
-          <p>Your appointment has been Cancel.</p>
+          <p>Your appointment has been cancelled.</p>
           <p><strong>Date:</strong> ${appointMent.date}</p>
           <p><strong>Time:</strong> ${appointMent.time}</p>
           <br/>
@@ -440,13 +446,16 @@ async createDoctor(req, res) {
         </div>
       `,
       });
-      res.status(200).json({
+
+      return res.status(200).json({
         status: true,
         data: appointMent,
-        message: "Appoinmtent Cancelled",
+        message: "Appointment cancelled successfully",
       });
     } catch (err) {
-      res.status(500).json({
+      console.log("❌ Error:", err.message);
+
+      return res.status(500).json({
         status: false,
         message: "Something went wrong",
         error: err.message,
