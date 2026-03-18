@@ -236,42 +236,77 @@ class AdminController {
     }
   }
 
-  async doctorUpdate(req, res) {
-    try {
-      const { id, name, fees, availableSlots } = req.body;
-      const existupdate = await DoctorSchema.findOne({ _id: id });
-      if (!existupdate) {
-        return res.status(400).json({
-          status: false,
-          message: "Id is required",
-        });
-      }
+async doctorUpdate(req, res) {
+  try {
+    const { id, name, fees, departmentId, schedule } = req.body;
 
-      let updateData = await DoctorSchema.findByIdAndUpdate(
-        existupdate,
-        { name, fees, availableSlots },
-        { new: true }, //return new data
-      );
-
-      if (!updateData) {
-        return res.status(400).json({
-          status: false,
-          message: "Update not happen",
-        });
-      }
-
-      return res.status(200).json({
-        message: "Doctor update successfull",
-        data: updateData,
-      });
-    } catch (err) {
-      return res.status(500).json({
+    if (!id) {
+      return res.status(400).json({
         status: false,
-        message: err.message,
+        message: "Doctor ID is required",
       });
     }
-  }
 
+    let updateObj = {};
+
+
+    if (name) updateObj.name = name;
+    if (fees) updateObj.fees = fees;
+    if (departmentId) updateObj.departmentId = departmentId;
+
+
+    if (schedule) {
+      if (schedule.startTime)
+        updateObj["schedule.startTime"] = schedule.startTime;
+
+      if (schedule.endTime)
+        updateObj["schedule.endTime"] = schedule.endTime;
+
+      if (schedule.slotDuration)
+        updateObj["schedule.slotDuration"] = schedule.slotDuration;
+    }
+
+
+    if (Object.keys(updateObj).length === 0) {
+      return res.status(400).json({
+        status: false,
+        message: "No data provided for update",
+      });
+    }
+
+    const updatedDoctor = await DoctorSchema.findByIdAndUpdate(
+      id,
+      { $set: updateObj },
+      { new: true }
+    );
+
+
+    if (!updatedDoctor) {
+      return res.status(404).json({
+        status: false,
+        message: "Doctor not found",
+      });
+    }
+
+
+    if (schedule) {
+      console.log("⚡ Schedule updated → You can regenerate slots here");
+
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: "Doctor updated successfully",
+      data: updatedDoctor,
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      status: false,
+      message: err.message,
+    });
+  }
+}
   async doctorDetails(req, res) {
     try {
       let dataID = req.params.id;
