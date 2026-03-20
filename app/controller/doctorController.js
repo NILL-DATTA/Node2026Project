@@ -184,16 +184,24 @@ class DoctorControllerUser {
   async historyUser(req, res) {
     try {
       let { userId, doctorId } = req.query;
-
-      let user = await AppointmentSchema.countDocuments({
-        userId: userId,
-        doctorId: doctorId,
+      let filter = {
+        userId,
         status: { $ne: "rejected" },
-      });
+      };
+
+      if (doctorId) {
+        filter.doctorId = doctorId;
+      }
+      let totalAppointments = await AppointmentSchema.countDocuments(filter);
+
+      let history = await AppointmentSchema.find(filter)
+        .populate({ path: "doctorId", select: "name fees departmentId" })
+        .sort({ date: -1 });
 
       res.status(200).json({
         status: true,
-        data: user,
+        totalAppointments,
+        data: history,
         message: "History feteched succesfully",
       });
     } catch (err) {

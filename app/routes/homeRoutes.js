@@ -26,5 +26,5 @@ router.post(
 
 router.get(`/diagnostic/nearby`, MapController.areaMap);
 router.post(`/user/slot/list`, DoctorControllerUser.getDoctorSlots);
-router.post(`/user/history`, DoctorControllerUser.historyUser);
+router.get(`/user/history`, DoctorControllerUser.historyUser);
 module.exports = router;
