@@ -8,7 +8,6 @@ const slotSchema = new mongoose.Schema(
       required: true,
     },
 
-
     date: {
       type: Date,
       required: true,
@@ -30,12 +29,9 @@ const slotSchema = new mongoose.Schema(
       default: null,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-slotSchema.index(
-  { doctorId: 1, date: 1, time: 1 },
-  { unique: true }
-);
+slotSchema.index({ doctorId: 1, date: 1, time: 1 }, { unique: true });
 
 module.exports = mongoose.model("Slot", slotSchema);

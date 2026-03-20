@@ -236,69 +236,71 @@ class AdminController {
     }
   }
 
-async doctorUpdate(req, res) {
-  try {
-    const { id, name, fees, departmentId, schedule } = req.body;
+  async doctorUpdate(req, res) {
+    try {
+      const { id, name, fees, departmentId, schedule } = req.body;
 
-    if (!id) {
-      return res.status(400).json({
+      if (!id) {
+        return res.status(400).json({
+          status: false,
+          message: "Doctor ID is required",
+        });
+      }
+
+      let updateObj = {};
+
+      if (name) updateObj.name = name;
+      if (fees !== undefined) updateObj.fees = fees;
+      if (departmentId) updateObj.departmentId = departmentId;
+
+      if (schedule) {
+        updateObj.schedule = {
+          ...(schedule.startTime !== undefined && {
+            startTime: schedule.startTime,
+          }),
+          ...(schedule.endTime !== undefined && { endTime: schedule.endTime }),
+          ...(schedule.slotDuration !== undefined && {
+            slotDuration: schedule.slotDuration,
+          }),
+        };
+      }
+
+      if (Object.keys(updateObj).length === 0) {
+        return res.status(400).json({
+          status: false,
+          message: "No data provided for update",
+        });
+      }
+
+      const updatedDoctor = await DoctorSchema.findByIdAndUpdate(
+        id,
+        { $set: updateObj },
+        { new: true, runValidators: true },
+      );
+
+      if (!updatedDoctor) {
+        return res.status(404).json({
+          status: false,
+          message: "Doctor not found",
+        });
+      }
+
+      if (schedule) {
+        console.log("⚡ Schedule updated → You can regenerate slots here");
+      }
+
+      return res.status(200).json({
+        status: true,
+        message: "Doctor updated successfully",
+        data: updatedDoctor,
+      });
+    } catch (err) {
+      return res.status(500).json({
         status: false,
-        message: "Doctor ID is required",
+        message: err.message,
       });
     }
-
-
-    let updateObj = {};
-
-    if (name) updateObj.name = name;
-    if (fees !== undefined) updateObj.fees = fees; 
-    if (departmentId) updateObj.departmentId = departmentId;
-
-    if (schedule) {
-      updateObj.schedule = {
-        ...(schedule.startTime !== undefined && { startTime: schedule.startTime }),
-        ...(schedule.endTime !== undefined && { endTime: schedule.endTime }),
-        ...(schedule.slotDuration !== undefined && { slotDuration: schedule.slotDuration }),
-      };
-    }
-
-    if (Object.keys(updateObj).length === 0) {
-      return res.status(400).json({
-        status: false,
-        message: "No data provided for update",
-      });
-    }
-
-
-    const updatedDoctor = await DoctorSchema.findByIdAndUpdate(
-      id,
-      { $set: updateObj },
-      { new: true, runValidators: true } 
-    );
-
-    if (!updatedDoctor) {
-      return res.status(404).json({
-        status: false,
-        message: "Doctor not found",
-      });
-    }
-
-    if (schedule) {
-      console.log("⚡ Schedule updated → You can regenerate slots here");
-    }
-
-    return res.status(200).json({
-      status: true,
-      message: "Doctor updated successfully",
-      data: updatedDoctor,
-    });
-  } catch (err) {
-    return res.status(500).json({
-      status: false,
-      message: err.message,
-    });
   }
-}
   async doctorDetails(req, res) {
     try {
       let dataID = req.params.id;
@@ -641,13 +643,11 @@ async doctorUpdate(req, res) {
         message: "Refresh Token removed successfully",
       });
     } catch (err) {}
-    res.status(200).json({
-      status: true,
-      message: "Refresh Token removed successfully",
+    res.status(500).json({
+      status: false,
+      message: err.message,
     });
   }
-
-  
 }
 
 module.exports = new AdminController();

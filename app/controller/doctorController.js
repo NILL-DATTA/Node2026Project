@@ -160,11 +160,13 @@ class DoctorControllerUser {
         });
       }
 
-      const slots = await slotSchemaModel.find({
-        doctorId,
-        date,
-        isBooked: false,
-      }).sort({ time: 1 });
+      const slots = await slotSchemaModel
+        .find({
+          doctorId,
+          date,
+          isBooked: false,
+        })
+        .sort({ time: 1 });
 
       return res.status(200).json({
         status: true,
@@ -173,6 +175,29 @@ class DoctorControllerUser {
       });
     } catch (err) {
       return res.status(500).json({
+        status: false,
+        message: err.message,
+      });
+    }
+  }
+
+  async historyUser(req, res) {
+    try {
+      let { userId, doctorId } = req.query;
+
+      let user = await AppointmentSchema.countDocuments({
+        userId: userId,
+        doctorId: doctorId,
+        status: { $ne: "rejected" },
+      });
+
+      res.status(200).json({
+        status: true,
+        data: user,
+        message: "History feteched succesfully",
+      });
+    } catch (err) {
+      res.status(500).json({
         status: false,
         message: err.message,
       });
