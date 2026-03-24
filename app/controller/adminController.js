@@ -566,9 +566,9 @@ class AdminController {
           message: "Department not found",
         });
       }
-
-      const data = await DepartmentSchema.findByIdAndDelete(departMentId);
       await DoctorSchema.deleteMany({ departmentId: departMentId });
+      const data = await DepartmentSchema.findByIdAndDelete(departMentId);
+
       console.log(data, "jkcf");
       return res.status(201).json({
         status: true,
