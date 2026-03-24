@@ -161,12 +161,15 @@ class AdminController {
             as: "department",
           },
         },
+
+        // $lookup = other collection r sathe join kore (SQL JOIN r motoh)
         {
           $unwind: {
             path: "$department",
             preserveNullAndEmptyArrays: true,
           },
         },
+        // array ke venge object banai
         {
           $match: {
             $or: [
@@ -185,6 +188,7 @@ class AdminController {
             totalCount: [{ $count: "count" }],
           },
         },
+        // 👉 একই query থেকে একসাথে ২টা result বের করা:
       ];
 
       const result = await DoctorSchema.aggregate(pipeline);
@@ -286,7 +290,7 @@ class AdminController {
       }
 
       if (schedule) {
-        console.log("⚡ Schedule updated → You can regenerate slots here");
+        console.log("Schedule updated → You can regenerate slots here");
       }
 
       return res.status(200).json({
@@ -516,7 +520,7 @@ class AdminController {
       const doctors = await DoctorSchema.find({
         departmentId: departmentId,
       }).populate("departmentId");
-
+      // populate = reference kora data ke full object a nie ase
       console.log(doctors, "doctors");
       res.status(200).json({
         status: true,
@@ -564,6 +568,7 @@ class AdminController {
       }
 
       const data = await DepartmentSchema.findByIdAndDelete(departMentId);
+      await DoctorSchema.deleteMany({ departmentId: departMentId });
       console.log(data, "jkcf");
       return res.status(201).json({
         status: true,
@@ -582,12 +587,23 @@ class AdminController {
     try {
       let today = new Date();
       today.setHours(0, 0, 0, 0);
+      // 0 hour → Night 12:am
+      // 0 minute
+      // 0 second
+      // 0 millisecond
+
       let nextday = new Date();
       nextday.setDate(today.getDate() + 7);
+      //Today To 7 din
       nextday.setHours(23, 59, 59, 999);
+      // 23 hour (Night 11:00pm)
+      // 59 Min
+      // 59 Sec
+      // 999 msec
       console.log(today, "Today");
       console.log(nextday, "NextDay");
       const list = await AppointmentSchema.aggregate([
+        //------match filter kore , array r modde theke status and date wise hoiche akne.
         {
           $match: {
             status: "Confirmed",
@@ -595,6 +611,7 @@ class AdminController {
           },
         },
         {
+          //asending order a date asbe
           $sort: { date: 1 },
         },
       ]);
