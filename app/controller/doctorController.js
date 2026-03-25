@@ -17,6 +17,11 @@ class DoctorControllerUser {
         });
       }
 
+      const toDay = new Date().toISOString().split("T")["0"];
+      const count = await slotSchemaModel.countDocuments({
+        bookedBy: userId,
+        date: toDay,
+      });
       let { doctorId, userId, date, time, name } = value;
 
       let user = await userSchema.findById(userId);
@@ -27,6 +32,12 @@ class DoctorControllerUser {
         });
       }
 
+      if (count >= 3) {
+        return res.status(400).json({
+          status: false,
+          message: "You can only book 3 appointments per day",
+        });
+      }
       const slot = await slotSchemaModel.findOneAndUpdate(
         {
           doctorId,

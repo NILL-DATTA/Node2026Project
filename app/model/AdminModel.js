@@ -19,7 +19,6 @@ const DoctorSchema = new mongoose.Schema(
       required: true,
     },
 
-
     schedule: {
       startTime: {
         type: String,
