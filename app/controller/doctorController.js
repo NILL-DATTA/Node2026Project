@@ -8,16 +8,15 @@ const slotSchemaModel = require("../model/slotSchemaModel");
 class DoctorControllerUser {
 async appointmentCreate(req, res) {
   const session = await mongoose.startSession();
-  session.startTransaction();
 
   try {
+    session.startTransaction();
 
+    // ✅ Validation
     let { error, value } = appointmentValidate.validate(req.body);
 
     if (error) {
       await session.abortTransaction();
-      session.endSession();
-
       return res.status(400).json({
         status: false,
         message: error.details.map((d) => d.message).join(", "),
@@ -26,13 +25,22 @@ async appointmentCreate(req, res) {
 
     const { doctorId, userId, date, time, name } = value;
 
+    
+    if (
+      !mongoose.Types.ObjectId.isValid(userId) ||
+      !mongoose.Types.ObjectId.isValid(doctorId)
+    ) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        status: false,
+        message: "Invalid userId or doctorId",
+      });
+    }
 
     const user = await userSchema.findById(userId).session(session);
 
     if (!user) {
       await session.abortTransaction();
-      session.endSession();
-
       return res.status(404).json({
         status: false,
         message: "User not found",
@@ -42,13 +50,11 @@ async appointmentCreate(req, res) {
 
     const count = await AppointmentSchema.countDocuments({
       userId,
-      date: date,
+      date,
     }).session(session);
 
     if (count >= 3) {
       await session.abortTransaction();
-      session.endSession();
-
       return res.status(400).json({
         status: false,
         message: "You can only book 3 appointments per day",
@@ -75,15 +81,13 @@ async appointmentCreate(req, res) {
 
     if (!slot) {
       await session.abortTransaction();
-      session.endSession();
-
       return res.status(400).json({
         status: false,
         message: "Slot already booked or not available",
       });
     }
 
-
+  
     const appointment = await AppointmentSchema.create(
       [
         {
@@ -100,7 +104,6 @@ async appointmentCreate(req, res) {
 
 
     await session.commitTransaction();
-    session.endSession();
 
 
     try {
@@ -131,15 +134,21 @@ async appointmentCreate(req, res) {
     });
 
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
+    console.log("FULL ERROR:", err); 
 
-    console.log("Error:", err.message);
+    try {
+      await session.abortTransaction();
+    } catch (e) {
+      console.log("Abort error:", e.message);
+    }
 
     return res.status(500).json({
       status: false,
-      message: err.message || "Error creating appointment",
+      message: err.message || "Internal Server Error",
     });
+
+  } finally {
+    session.endSession(); 
   }
 }
 
