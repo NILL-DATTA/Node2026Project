@@ -18,12 +18,12 @@ class DoctorControllerUser {
       }
 
       const toDay = new Date().toISOString().split("T")["0"];
+
+      let { doctorId, userId, date, time, name } = value;
       const count = await slotSchemaModel.countDocuments({
         bookedBy: userId,
         date: toDay,
       });
-      let { doctorId, userId, date, time, name } = value;
-
       let user = await userSchema.findById(userId);
       if (!user) {
         return res.status(404).json({
