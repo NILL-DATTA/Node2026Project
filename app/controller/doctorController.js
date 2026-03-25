@@ -59,9 +59,14 @@ class DoctorControllerUser {
       );
 
       if (!slot) {
-        throw new Error("Slot already booked or not available");
-      }
+        await session.abortTransaction();
+        session.endSession();
 
+        return res.status(400).json({
+          status: false,
+          message: "Slot already booked or not available",
+        });
+      }
       const appointment = await AppointmentSchema.create(
         [
           {
