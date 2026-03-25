@@ -8,15 +8,12 @@ const slotSchemaModel = require("../model/slotSchemaModel");
 class DoctorControllerUser {
 async appointmentCreate(req, res) {
   const session = await mongoose.startSession();
+  session.startTransaction();
 
   try {
-    session.startTransaction();
-
-    // ✅ Validation
     let { error, value } = appointmentValidate.validate(req.body);
 
     if (error) {
-      await session.abortTransaction();
       return res.status(400).json({
         status: false,
         message: error.details.map((d) => d.message).join(", "),
@@ -25,42 +22,13 @@ async appointmentCreate(req, res) {
 
     const { doctorId, userId, date, time, name } = value;
 
-    
-    if (
-      !mongoose.Types.ObjectId.isValid(userId) ||
-      !mongoose.Types.ObjectId.isValid(doctorId)
-    ) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        status: false,
-        message: "Invalid userId or doctorId",
-      });
-    }
-
-    const user = await userSchema.findById(userId).session(session);
-
+    const user = await userSchema.findById(userId);
     if (!user) {
-      await session.abortTransaction();
       return res.status(404).json({
         status: false,
         message: "User not found",
       });
     }
-
-
-    const count = await AppointmentSchema.countDocuments({
-      userId,
-      date,
-    }).session(session);
-
-    if (count >= 3) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        status: false,
-        message: "You can only book 3 appointments per day",
-      });
-    }
-
 
     const slot = await slotSchemaModel.findOneAndUpdate(
       {
@@ -73,21 +41,19 @@ async appointmentCreate(req, res) {
         isBooked: true,
         bookedBy: userId,
       },
-      {
-        new: true,
-        session,
-      }
+      { new: true, session }
     );
 
     if (!slot) {
       await session.abortTransaction();
+      session.endSession();
+
       return res.status(400).json({
         status: false,
         message: "Slot already booked or not available",
       });
     }
 
-  
     const appointment = await AppointmentSchema.create(
       [
         {
@@ -102,9 +68,8 @@ async appointmentCreate(req, res) {
       { session }
     );
 
-
     await session.commitTransaction();
-
+    session.endSession();
 
     try {
       await transporter.sendMail({
@@ -112,16 +77,16 @@ async appointmentCreate(req, res) {
         to: user.email,
         subject: "Appointment Booking Pending",
         html: `
-          <div style="font-family: Arial;">
-            <h2 style="color: orange;">Appointment Pending</h2>
-            <p>Dear ${user.first_name},</p>
-            <p>Your appointment request is pending approval.</p>
-            <p><strong>Date:</strong> ${date}</p>
-            <p><strong>Time:</strong> ${time}</p>
-            <br/>
-            <p>Please wait for confirmation.</p>
-          </div>
-        `,
+        <div style="font-family: Arial;">
+          <h2 style="color: orange;">Appointment Pending</h2>
+          <p>Dear ${user.first_name},</p>
+          <p>Your appointment request is pending approval.</p>
+          <p><strong>Date:</strong> ${date}</p>
+          <p><strong>Time:</strong> ${time}</p>
+          <br/>
+          <p>Please wait for confirmation.</p>
+        </div>
+      `,
       });
     } catch (mailErr) {
       console.log("Email failed:", mailErr.message);
@@ -132,23 +97,16 @@ async appointmentCreate(req, res) {
       data: appointment[0],
       message: "Appointment request sent, waiting for approval",
     });
-
   } catch (err) {
-    console.log("FULL ERROR:", err); 
+    await session.abortTransaction();
+    session.endSession();
 
-    try {
-      await session.abortTransaction();
-    } catch (e) {
-      console.log("Abort error:", e.message);
-    }
+    console.log("Error:", err.message);
 
     return res.status(500).json({
       status: false,
-      message: err.message || "Internal Server Error",
+      message: err.message || "Error creating appointment",
     });
-
-  } finally {
-    session.endSession(); 
   }
 }
 
