@@ -12,7 +12,7 @@ router.post(
   "/doctor/appointment",
   checkRole("user"),
 
-  DoctorControllerUser.apponintmentCreate,
+  DoctorControllerUser.appointmentCreate,
 );
 router.get(`/user/profile`, checkRole("user"), AuthController.profile);
 router.post(`/user/logout`, checkRole("user"), AuthController.userLogout);

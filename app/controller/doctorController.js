@@ -6,122 +6,142 @@ const DoctorSchema = require("../model/AdminModel");
 const slotSchemaModel = require("../model/slotSchemaModel");
 
 class DoctorControllerUser {
-  async appointmentCreate(req, res) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+async appointmentCreate(req, res) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-    try {
-      let { error, value } = appointmentValidate.validate(req.body);
+  try {
 
-      if (error) {
-        return res.status(400).json({
-          status: false,
-          message: error.details.map((d) => d.message).join(", "),
-        });
-      }
+    let { error, value } = appointmentValidate.validate(req.body);
 
-      const { doctorId, userId, date, time, name } = value;
-
-      const toDay = new Date().toISOString().split("T")[0];
-
-      const user = await userSchema.findById(userId);
-      if (!user) {
-        return res.status(404).json({
-          status: false,
-          message: "User not found",
-        });
-      }
-
-      const count = await AppointmentSchema.countDocuments({
-        userId,
-        date: toDay,
-      });
-
-      if (count >= 3) {
-        return res.status(400).json({
-          status: false,
-          message: "You can only book 3 appointments per day",
-        });
-      }
-
-      const slot = await slotSchemaModel.findOneAndUpdate(
-        {
-          doctorId,
-          date,
-          time,
-          isBooked: false,
-        },
-        {
-          isBooked: true,
-          bookedBy: userId,
-        },
-        { new: true, session },
-      );
-
-      if (!slot) {
-        await session.abortTransaction();
-        session.endSession();
-
-        return res.status(400).json({
-          status: false,
-          message: "Slot already booked or not available",
-        });
-      }
-      const appointment = await AppointmentSchema.create(
-        [
-          {
-            doctorId,
-            userId,
-            date,
-            name,
-            time,
-            status: "Pending",
-          },
-        ],
-        { session },
-      );
-
-      await session.commitTransaction();
-      session.endSession();
-
-      try {
-        await transporter.sendMail({
-          from: `"Hospital Management" <yourgmail@gmail.com>`,
-          to: user.email,
-          subject: "Appointment Booking Pending",
-          html: `
-        <div style="font-family: Arial;">
-          <h2 style="color: orange;">Appointment Pending</h2>
-          <p>Dear ${user.first_name},</p>
-          <p>Your appointment request is pending approval.</p>
-          <p><strong>Date:</strong> ${date}</p>
-          <p><strong>Time:</strong> ${time}</p>
-          <br/>
-          <p>Please wait for confirmation.</p>
-        </div>
-      `,
-        });
-      } catch (mailErr) {
-        console.log("Email failed:", mailErr.message);
-      }
-
-      return res.status(200).json({
-        status: true,
-        data: appointment[0],
-        message: "Appointment request sent, waiting for approval",
-      });
-    } catch (err) {
+    if (error) {
       await session.abortTransaction();
       session.endSession();
 
-      console.log("Error:", err.message);
-
-      return res.status(500).json({
+      return res.status(400).json({
         status: false,
-        message: err.message || "Error creating appointment",
+        message: error.details.map((d) => d.message).join(", "),
       });
     }
+
+    const { doctorId, userId, date, time, name } = value;
+
+
+    const user = await userSchema.findById(userId).session(session);
+
+    if (!user) {
+      await session.abortTransaction();
+      session.endSession();
+
+      return res.status(404).json({
+        status: false,
+        message: "User not found",
+      });
+    }
+
+
+    const count = await AppointmentSchema.countDocuments({
+      userId,
+      date: date,
+    }).session(session);
+
+    if (count >= 3) {
+      await session.abortTransaction();
+      session.endSession();
+
+      return res.status(400).json({
+        status: false,
+        message: "You can only book 3 appointments per day",
+      });
+    }
+
+
+    const slot = await slotSchemaModel.findOneAndUpdate(
+      {
+        doctorId,
+        date,
+        time,
+        isBooked: false,
+      },
+      {
+        isBooked: true,
+        bookedBy: userId,
+      },
+      {
+        new: true,
+        session,
+      }
+    );
+
+    if (!slot) {
+      await session.abortTransaction();
+      session.endSession();
+
+      return res.status(400).json({
+        status: false,
+        message: "Slot already booked or not available",
+      });
+    }
+
+
+    const appointment = await AppointmentSchema.create(
+      [
+        {
+          doctorId,
+          userId,
+          date,
+          name,
+          time,
+          status: "Pending",
+        },
+      ],
+      { session }
+    );
+
+
+    await session.commitTransaction();
+    session.endSession();
+
+
+    try {
+      await transporter.sendMail({
+        from: `"Hospital Management" <yourgmail@gmail.com>`,
+        to: user.email,
+        subject: "Appointment Booking Pending",
+        html: `
+          <div style="font-family: Arial;">
+            <h2 style="color: orange;">Appointment Pending</h2>
+            <p>Dear ${user.first_name},</p>
+            <p>Your appointment request is pending approval.</p>
+            <p><strong>Date:</strong> ${date}</p>
+            <p><strong>Time:</strong> ${time}</p>
+            <br/>
+            <p>Please wait for confirmation.</p>
+          </div>
+        `,
+      });
+    } catch (mailErr) {
+      console.log("Email failed:", mailErr.message);
+    }
+
+    return res.status(200).json({
+      status: true,
+      data: appointment[0],
+      message: "Appointment request sent, waiting for approval",
+    });
+
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+
+    console.log("Error:", err.message);
+
+    return res.status(500).json({
+      status: false,
+      message: err.message || "Error creating appointment",
+    });
   }
+}
 
   async user_doctorListData(req, res) {
     try {
