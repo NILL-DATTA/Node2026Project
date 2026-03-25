@@ -6,77 +6,77 @@ const DoctorSchema = require("../model/AdminModel");
 const slotSchemaModel = require("../model/slotSchemaModel");
 
 class DoctorControllerUser {
-async appointmentCreate(req, res) {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    let { error, value } = appointmentValidate.validate(req.body);
-
-    if (error) {
-      return res.status(400).json({
-        status: false,
-        message: error.details.map((d) => d.message).join(", "),
-      });
-    }
-
-    const { doctorId, userId, date, time, name } = value;
-
-    const user = await userSchema.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        status: false,
-        message: "User not found",
-      });
-    }
-
-    const slot = await slotSchemaModel.findOneAndUpdate(
-      {
-        doctorId,
-        date,
-        time,
-        isBooked: false,
-      },
-      {
-        isBooked: true,
-        bookedBy: userId,
-      },
-      { new: true, session }
-    );
-
-    if (!slot) {
-      await session.abortTransaction();
-      session.endSession();
-
-      return res.status(400).json({
-        status: false,
-        message: "Slot already booked or not available",
-      });
-    }
-
-    const appointment = await AppointmentSchema.create(
-      [
-        {
-          doctorId,
-          userId,
-          date,
-          name,
-          time,
-          status: "Pending",
-        },
-      ],
-      { session }
-    );
-
-    await session.commitTransaction();
-    session.endSession();
+  async appointmentCreate(req, res) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
     try {
-      await transporter.sendMail({
-        from: `"Hospital Management" <yourgmail@gmail.com>`,
-        to: user.email,
-        subject: "Appointment Booking Pending",
-        html: `
+      let { error, value } = appointmentValidate.validate(req.body);
+
+      if (error) {
+        return res.status(400).json({
+          status: false,
+          message: error.details.map((d) => d.message).join(", "),
+        });
+      }
+
+      const { doctorId, userId, date, time, name } = value;
+
+      const user = await userSchema.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          status: false,
+          message: "User not found",
+        });
+      }
+
+      const slot = await slotSchemaModel.findOneAndUpdate(
+        {
+          doctorId: new mongoose.Types.ObjectId(doctorId),
+          date: new Date(date),
+          time,
+          isBooked: false,
+        },
+        {
+          isBooked: true,
+          bookedBy: userId,
+        },
+        { new: true },
+      );
+
+      if (!slot) {
+        await session.abortTransaction();
+        session.endSession();
+
+        return res.status(400).json({
+          status: false,
+          message: "Slot already booked or not available",
+        });
+      }
+
+      const appointment = await AppointmentSchema.create(
+        [
+          {
+            doctorId,
+            userId,
+            date,
+            name,
+            time,
+            status: "Pending",
+          },
+        ],
+        { session },
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      try {
+        await transporter.sendMail({
+          from: `"Hospital Management" <yourgmail@gmail.com>`,
+          to: user.email,
+          subject: "Appointment Booking Pending",
+          html: `
         <div style="font-family: Arial;">
           <h2 style="color: orange;">Appointment Pending</h2>
           <p>Dear ${user.first_name},</p>
@@ -87,28 +87,28 @@ async appointmentCreate(req, res) {
           <p>Please wait for confirmation.</p>
         </div>
       `,
+        });
+      } catch (mailErr) {
+        console.log("Email failed:", mailErr.message);
+      }
+
+      return res.status(200).json({
+        status: true,
+        data: appointment[0],
+        message: "Appointment request sent, waiting for approval",
       });
-    } catch (mailErr) {
-      console.log("Email failed:", mailErr.message);
+    } catch (err) {
+      await session.abortTransaction();
+      session.endSession();
+
+      console.log("Error:", err.message);
+
+      return res.status(500).json({
+        status: false,
+        message: err.message || "Error creating appointment",
+      });
     }
-
-    return res.status(200).json({
-      status: true,
-      data: appointment[0],
-      message: "Appointment request sent, waiting for approval",
-    });
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-
-    console.log("Error:", err.message);
-
-    return res.status(500).json({
-      status: false,
-      message: err.message || "Error creating appointment",
-    });
   }
-}
 
   async user_doctorListData(req, res) {
     try {
