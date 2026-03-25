@@ -4,7 +4,7 @@ let transporter = require("../config/emailConfig");
 const userSchema = require("../model/authModel");
 const DoctorSchema = require("../model/AdminModel");
 const slotSchemaModel = require("../model/slotSchemaModel");
-
+const mongoose = require("mongoose");
 class DoctorControllerUser {
   async appointmentCreate(req, res) {
     const session = await mongoose.startSession();
