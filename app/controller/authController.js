@@ -173,7 +173,7 @@ class AuthController {
       }
 
       let token = jwt.sign({ id: user._id, role: user.role }, "secret_key", {
-        expiresIn: "5m",
+        expiresIn: "5s",
       });
 
       let refreshToken = jwt.sign(
